@@ -23,7 +23,7 @@ class InterviewsController < ApplicationController
     @interview = AssistantSession.find(params[:id])
     @question = @interview.questions[@interview.current_question_number - 1]
 
-    @interview.answers.create!(
+    @interview.interview_answers.create!(
       content: params[:answer],
       question_number: @interview.current_question_number
     )
@@ -43,6 +43,6 @@ class InterviewsController < ApplicationController
 
   def summary
     @interview = AssistantSession.find(params[:id])
-    @answers = @interview.answers
+    @answers = @interview.interview_answers
   end
 end
