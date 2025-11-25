@@ -1,0 +1,38 @@
+<div class="container mt-5">
+  <h2>Interview for <%= @session.role %></h2>
+
+  <h4 class="mt-4">Question <%= @question.number %>/25</h4>
+  <p class="lead"><%= @question.content %></p>
+
+  <%= form_with url: answer_interview_path(@session), method: :post, local: true do |f| %>
+    <div class="mb-3">
+      <%= text_area_tag :answer, nil, class: "form-control", rows: 4, placeholder: "Type your answer here..." %>
+    </div>
+
+    <div class="text-center mt-3">
+      <%= submit_tag "Next Question", class: "btn btn-primary btn-lg" %>
+    </div>
+  <% end %>
+
+  <hr class="mt-4">
+  <h5>Timer:</h5>
+  <div id="timer" style="font-size: 24px; font-weight: bold;"></div>
+</div>
+
+<script>
+  let totalSeconds = 3600; // 1 hour
+
+  function updateTimer() {
+    let min = Math.floor(totalSeconds / 60);
+    let sec = totalSeconds % 60;
+
+    document.getElementById("timer").innerHTML =
+      `${min}m ${sec < 10 ? "0" + sec : sec}s`;
+
+    if (totalSeconds > 0) {
+      totalSeconds--;
+    }
+  }
+
+  setInterval(updateTimer, 1000);
+</script>

@@ -1,0 +1,15 @@
+<div class="container mt-5">
+  <h2 class="text-center">Start Mock Interview</h2>
+  <p class="text-center text-muted">Select a role to generate 25 AI questions.</p>
+
+  <%= form_with url: interviews_path, method: :post, local: true do |f| %>
+    <div class="mb-3">
+      <%= label_tag :role, "Job Role", class: "form-label" %>
+      <%= text_field_tag :role, nil, class: "form-control", placeholder: "e.g., Ruby Developer" %>
+    </div>
+
+    <div class="text-center mt-4">
+      <%= submit_tag "Start Interview", class: "btn btn-primary btn-lg" %>
+    </div>
+  <% end %>
+</div>

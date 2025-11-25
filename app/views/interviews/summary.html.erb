@@ -1,0 +1,19 @@
+<div class="container mt-5">
+  <h2>Interview Summary</h2>
+
+  <p><strong>Role:</strong> <%= @session.role %></p>
+  <p><strong>Time taken:</strong> <%= @session.time_taken %> seconds</p>
+
+  <hr>
+
+  <h4>AI Feedback</h4>
+  <ul>
+    <% @session.messages.where(role: "assistant").each do |m| %>
+      <li><%= m.content %></li>
+    <% end %>
+  </ul>
+
+  <div class="mt-4">
+    <%= link_to "Back to Home", root_path, class: "btn btn-primary" %>
+  </div>
+</div>
