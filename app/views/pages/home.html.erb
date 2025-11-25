@@ -1,2 +1,12 @@
-<h1>Pages#home</h1>
-<p>Find me in app/views/pages/home.html.erb</p>
+<div class="container mt-5 text-center">
+  <h1>AI Mock Interview</h1>
+  <p class="lead mt-3">Practice 25 timed interview questions with AI.</p>
+
+  <div class="mt-4">
+    <%= link_to "Start Interview", new_interview_path, class: "btn btn-primary btn-lg" %>
+  </div>
+
+  <div class="mt-3">
+    <%= link_to "Past Sessions", assistant_sessions_path, class: "btn btn-secondary" %>
+  </div>
+</div>
