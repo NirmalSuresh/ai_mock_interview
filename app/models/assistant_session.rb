@@ -2,7 +2,7 @@ class AssistantSession < ApplicationRecord
   belongs_to :user
 
   # Each session has many answers from the user
-  has_many :answers, dependent: :destroy
+   has_many :answers, class_name: "InterviewAnswer", dependent: :destroy
 
   # Store all 25 questions inside the model
   def questions
