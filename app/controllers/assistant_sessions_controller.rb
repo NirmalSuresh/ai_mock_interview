@@ -9,12 +9,10 @@ class AssistantSessionsController < ApplicationController
     @session = AssistantSession.new
   end
 
-  def create
-    @session = current_user.assistant_sessions.create!(
-      title: params[:assistant_session][:title]
-    )
-    redirect_to assistant_session_path(@session)
-  end
+ def create
+  @session = current_user.assistant_sessions.create!
+  redirect_to assistant_session_path(@session)
+end
 
   def show
     @session = AssistantSession.find(params[:id])

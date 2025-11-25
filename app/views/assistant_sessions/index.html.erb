@@ -1,12 +1,12 @@
 <div class="container mt-4">
   <h2>Your Chats</h2>
 
-  <%= link_to "New Chat", new_assistant_session_path, class: "btn btn-primary mb-3" %>
+  <%= link_to "Start New Chat", new_assistant_session_path, class: "btn btn-primary mb-3" %>
 
   <ul class="list-group">
     <% @sessions.each do |s| %>
       <li class="list-group-item d-flex justify-content-between">
-        <%= link_to s.title, assistant_session_path(s) %>
+        <%= link_to "Chat ##{s.id}", assistant_session_path(s) %>
         <span class="text-muted"><%= time_ago_in_words(s.created_at) %> ago</span>
       </li>
     <% end %>
