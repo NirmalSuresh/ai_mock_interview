@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_25_120040) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_25_123604) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -39,6 +39,15 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_25_120040) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_assistant_sessions_on_user_id"
+  end
+
+  create_table "interview_answers", force: :cascade do |t|
+    t.bigint "assistant_session_id", null: false
+    t.integer "question_number"
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assistant_session_id"], name: "index_interview_answers_on_assistant_session_id"
   end
 
   create_table "messages", force: :cascade do |t|
@@ -74,6 +83,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_25_120040) do
 
   add_foreign_key "answers", "assistant_sessions"
   add_foreign_key "assistant_sessions", "users"
+  add_foreign_key "interview_answers", "assistant_sessions"
   add_foreign_key "messages", "assistant_sessions"
   add_foreign_key "questions", "assistant_sessions"
 end
