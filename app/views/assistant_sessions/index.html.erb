@@ -1,0 +1,15 @@
+<h1>Your Past Interview Sessions</h1>
+
+<% if @sessions.any? %>
+  <ul>
+    <% @sessions.each do |s| %>
+      <li>
+        Session <%= s.id %> — Score: <%= s.total_score || 0 %>
+        <br>
+        <%= link_to "View Summary", summary_interview_path(s) %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>No sessions yet.</p>
+<% end %>
