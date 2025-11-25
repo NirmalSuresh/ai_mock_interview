@@ -11,11 +11,13 @@
     <% end %>
   </div>
 
-<%= form_with url: assistant_session_messages_path(@session), method: :post, local: true, data: { turbo: false } do %>
-  <%= text_field_tag :content, nil, class: "form-control" %>
-  <%= submit_tag "Send", class: "btn btn-primary mt-2" %>
-<% end %>
+  <%= form_with url: assistant_session_messages_path(@session),
+                method: :post,
+                local: true,
+                data: { turbo: false } do %>
 
-  <%= f.submit "Send", class: "btn btn-success" %>
+    <%= text_field_tag :content, nil, class: "form-control" %>
+    <%= submit_tag "Send", class: "btn btn-primary mt-2" %>
+
   <% end %>
 </div>
