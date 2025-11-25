@@ -1,5 +1,7 @@
-class AssistantSession < ApplicationRecord
-  belongs_to :user
-  has_many :questions, dependent: :destroy
-  has_many :messages, dependent: :destroy
+class AssistantSessionsController < ApplicationController
+  before_action :authenticate_user!
+
+  def index
+    @assistant_sessions = current_user.assistant_sessions.order(created_at: :desc)
+  end
 end

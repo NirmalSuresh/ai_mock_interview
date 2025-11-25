@@ -1,15 +1,19 @@
-<h1>Your Past Interview Sessions</h1>
+<div class="container mt-4">
+  <h2>Past Interview Sessions</h2>
 
-<% if @sessions.any? %>
-  <ul>
-    <% @sessions.each do |s| %>
-      <li>
-        Session <%= s.id %> — Score: <%= s.total_score || 0 %>
-        <br>
-        <%= link_to "View Summary", summary_interview_path(s) %>
-      </li>
-    <% end %>
-  </ul>
-<% else %>
-  <p>No sessions yet.</p>
-<% end %>
+  <% if @assistant_sessions.any? %>
+    <ul class="list-group mt-3">
+      <% @assistant_sessions.each do |session| %>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>
+            Session <%= session.id %> — <%= session.created_at.strftime("%b %d, %Y %H:%M") %>
+          </span>
+
+          <%= link_to "Open", interview_path(session), class: "btn btn-sm btn-primary" %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="mt-3 text-muted">No past sessions found.</p>
+  <% end %>
+</div>
