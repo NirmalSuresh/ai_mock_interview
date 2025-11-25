@@ -2,67 +2,47 @@ class InterviewsController < ApplicationController
   before_action :authenticate_user!
 
   def new
+    @interview = AssistantSession.new
   end
 
   def create
-    role = params[:role]
-
-    assistant_session = AssistantSession.create!(
-      user: current_user,
-      role: role,
-      current_question_number: 1,
-      start_time: Time.now,
-      time_limit: 60.minutes
+    @interview = current_user.assistant_sessions.create!(
+      role: params[:role],
+      current_question_number: 1
     )
 
-    # Generate 25 questions
-    25.times do |i|
-      Question.create!(
-        assistant_session: assistant_session,
-        number: i + 1,
-        content: "Question #{i + 1} for #{role} (AI generated later)"
-      )
-    end
-
-    redirect_to interview_path(assistant_session)
+    redirect_to interview_path(@interview)
   end
 
   def show
-    @session = AssistantSession.find(params[:id])
-    @question = @session.questions.find_by(number: @session.current_question_number)
+    @interview = AssistantSession.find(params[:id])
+    @question = @interview.questions[@interview.current_question_number - 1]
   end
 
   def answer
-    session_id = params[:interview_id]
-    @session = AssistantSession.find(session_id)
+    @interview = AssistantSession.find(params[:id])
+    @question = @interview.questions[@interview.current_question_number - 1]
 
-    user_answer = params[:answer]
-
-    Message.create!(
-      assistant_session: @session,
-      role: "user",
-      content: user_answer
+    @interview.answers.create!(
+      content: params[:answer],
+      question_number: @interview.current_question_number
     )
 
-    ai_feedback = "AI feedback for your answer to Q#{@session.current_question_number}"
-
-    Message.create!(
-      assistant_session: @session,
-      role: "assistant",
-      content: ai_feedback
-    )
-
-    @session.update(current_question_number: @session.current_question_number + 1)
-
-    if @session.current_question_number > 25
-      @session.update(end_time: Time.now)
-      redirect_to summary_interview_path(@session)
+    if @interview.current_question_number < 25
+      @interview.update(current_question_number: @interview.current_question_number + 1)
+      redirect_to interview_path(@interview)
     else
-      redirect_to interview_path(@session)
+      redirect_to summary_interview_path(@interview)
     end
   end
 
+  def timeout
+    @interview = AssistantSession.find(params[:id])
+    redirect_to summary_interview_path(@interview)
+  end
+
   def summary
-    @session = AssistantSession.find(params[:interview_id])
+    @interview = AssistantSession.find(params[:id])
+    @answers = @interview.answers
   end
 end

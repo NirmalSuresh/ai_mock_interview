@@ -3,10 +3,11 @@ Rails.application.routes.draw do
   root "pages#home"
 
   resources :interviews, only: [:new, :create, :show] do
-    post :answer
-    post :timeout
-    get  :summary
-  end
+  post :answer, on: :member
+  post :timeout, on: :member
+  get  :summary, on: :member
+end
+
 
   resources :assistant_sessions, only: [:index]
 end
