@@ -4,39 +4,37 @@ class MessagesController < ApplicationController
   def create
     @session = AssistantSession.find(params[:assistant_session_id])
 
-    # Save the user message first
-    user_message = @session.messages.create!(
+    # Save the user's message
+    user_msg = @session.messages.create!(
       role: "user",
       content: params[:content]
     )
 
-    # Build full conversation for OpenAI
-    conversation = @session.messages.order(:created_at).map do |m|
-      { role: m.role, content: m.content }
-    end
-
-    # Add system prompt
-    conversation.unshift({
-      role: "system",
-      content: "You are a friendly AI chat assistant."
-    })
-
     # Call OpenAI
-    client = OpenAI::Client.new
-    ai_response = client.chat(parameters: {
-      model: "gpt-4o-mini",
-      messages: conversation
-    })
+    ai_response = OpenAIClient.chat(
+      parameters: {
+        model: "gpt-4o-mini",
+        messages: build_messages(@session)
+      }
+    )
 
-    # Extract AI message safely
-    ai_text = ai_response.dig("choices", 0, "message", "content")
+    bot_text = ai_response["choices"][0]["message"]["content"]
 
-    # Save the assistant's reply
+    # Save AI response
     @session.messages.create!(
       role: "assistant",
-      content: ai_text
+      content: bot_text
     )
 
     redirect_to assistant_session_path(@session)
+  end
+
+  private
+
+  # Convert previous messages to OpenAI format
+  def build_messages(session)
+    session.messages.order(:created_at).map do |m|
+      { role: m.role, content: m.content }
+    end
   end
 end
