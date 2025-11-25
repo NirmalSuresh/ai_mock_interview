@@ -1,19 +1,14 @@
 <div class="container mt-4">
-  <h2>Past Interview Sessions</h2>
+  <h2>Your Chats</h2>
 
-  <% if @assistant_sessions.any? %>
-    <ul class="list-group mt-3">
-      <% @assistant_sessions.each do |session| %>
-        <li class="list-group-item d-flex justify-content-between">
-          <span>
-            Session <%= session.id %> — <%= session.created_at.strftime("%b %d, %Y %H:%M") %>
-          </span>
+  <%= link_to "New Chat", new_assistant_session_path, class: "btn btn-primary mb-3" %>
 
-          <%= link_to "Open", interview_path(session), class: "btn btn-sm btn-primary" %>
-        </li>
-      <% end %>
-    </ul>
-  <% else %>
-    <p class="mt-3 text-muted">No past sessions found.</p>
-  <% end %>
+  <ul class="list-group">
+    <% @sessions.each do |s| %>
+      <li class="list-group-item d-flex justify-content-between">
+        <%= link_to s.title, assistant_session_path(s) %>
+        <span class="text-muted"><%= time_ago_in_words(s.created_at) %> ago</span>
+      </li>
+    <% end %>
+  </ul>
 </div>

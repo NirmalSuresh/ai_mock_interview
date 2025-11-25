@@ -1,15 +1,9 @@
 Rails.application.routes.draw do
   devise_for :users
 
-  resources :interviews do
-    member do
-      post :answer
-      post :timeout
-      get :summary
-    end
+  root "assistant_sessions#index"
+
+  resources :assistant_sessions, only: [:index, :new, :create, :show] do
+    resources :messages, only: [:create]
   end
-
-  resources :assistant_sessions, only: [:index, :show]
-
-  root "pages#home"
 end

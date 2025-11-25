@@ -1,0 +1,21 @@
+<div class="container mt-4">
+  <h2><%= @session.title %></h2>
+  <hr>
+
+  <div class="chat-area mb-4" style="min-height: 300px;">
+    <% @messages.each do |m| %>
+      <p>
+        <strong><%= m.role.capitalize %>:</strong>
+        <%= m.content %>
+      </p>
+    <% end %>
+  </div>
+
+  <%= form_with url: assistant_session_messages_path(@session), method: :post do |f| %>
+    <div class="mb-3">
+      <%= f.text_area :content, class: "form-control", rows: 3 %>
+    </div>
+
+    <%= f.submit "Send", class: "btn btn-success" %>
+  <% end %>
+</div>
