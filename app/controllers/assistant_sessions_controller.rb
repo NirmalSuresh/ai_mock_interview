@@ -18,9 +18,8 @@ class AssistantSessionsController < ApplicationController
       status: "in_progress"
     )
 
-    # Generate Question 1 immediately
+    # Generate Question 1
     chat = RubyLLM.chat(model: "gpt-4o-mini")
-
     ai_response = chat.ask(
       "#{SystemPrompt.text}\n\n" \
       "Role: #{params[:role]}\n" \
@@ -45,6 +44,14 @@ class AssistantSessionsController < ApplicationController
     @session  = current_user.assistant_sessions.find(params[:id])
     @messages = @session.messages.order(:created_at)
 
-    InterviewEvaluator.call(@session)
+    # === Critical Fix: Safely evaluate & save results ===
+    result = InterviewEvaluator.call(@session) || {}
+
+    @session.update!(
+      ai_feedback: result[:feedback].presence || "AI could not generate feedback.",
+      score:       result[:score].presence || 0,
+      strengths:   result[:strengths].presence || "Not available",
+      weaknesses:  result[:weaknesses].presence || "Not available"
+    )
   end
 end
