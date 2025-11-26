@@ -1,3 +1,10 @@
+<!-- TIMER -->
+<div data-controller="timer"
+     data-timer-end-time-value="<%= @session.ends_at.to_i %>"
+     class="mb-4 text-right text-lg fw-bold">
+  Time Left: <span data-timer-target="output">--:--</span>
+</div>
+
 <h1 class="text-2xl font-bold mb-4">
   Interview for <%= @session.role %> — Question <%= @session.current_question_number %>/25
 </h1>
