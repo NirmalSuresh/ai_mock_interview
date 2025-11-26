@@ -47,11 +47,13 @@ class AssistantSessionsController < ApplicationController
   # -------------------------
   # SHOW LIVE INTERVIEW
   # -------------------------
-  def show
-    @session   = current_user.assistant_sessions.find(params[:id])
-    @messages  = @session.messages.order(:created_at)
-    @time_left = @session.time_left
-  end
+def show
+  @session   = current_user.assistant_sessions.find(params[:id])
+  @messages  = @session.messages.order(:created_at)
+
+  @time_left_seconds = @session.time_left # <-- ADD THIS
+end
+
 
   # -------------------------
   # FINAL REPORT PAGE
@@ -63,7 +65,6 @@ class AssistantSessionsController < ApplicationController
     # Generate score & feedback
     InterviewEvaluator.call(@session)
 
-    # Always render the report page
     render :final_report
   end
 end
