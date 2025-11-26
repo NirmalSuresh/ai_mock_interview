@@ -1,0 +1,29 @@
+<div class="max-w-3xl mx-auto bg-white shadow p-6 rounded mt-6">
+  <h1 class="text-2xl font-bold mb-4">Final Interview Report</h1>
+
+  <p class="text-lg mb-4">
+    Role: <strong><%= @session.role %></strong>
+  </p>
+
+  <h2 class="text-xl font-semibold mb-2">Your Answers:</h2>
+
+  <div class="space-y-3 mb-6">
+    <% @session.messages.where(role: "user").each_with_index do |msg, index| %>
+      <div class="p-3 border rounded bg-gray-50">
+        <strong>Answer <%= index + 1 %>:</strong>
+        <p><%= msg.content %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-2">AI Feedback:</h2>
+
+  <div class="p-4 border rounded bg-green-50">
+    <%= @session.ai_feedback.presence || "AI could not generate feedback." %>
+  </div>
+
+  <div class="mt-6 text-center">
+    <%= link_to "Start New Interview", new_assistant_session_path,
+          class: "px-4 py-2 bg-blue-600 text-white rounded" %>
+  </div>
+</div>
