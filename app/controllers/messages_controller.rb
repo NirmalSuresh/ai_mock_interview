@@ -1,70 +1,79 @@
-def create
-  @session = current_user.assistant_sessions.find(params[:assistant_session_id])
+class MessagesController < ApplicationController
+  before_action :authenticate_user!
 
-  # End interview if expired
-  if @session.expired?
-    @session.update!(status: "completed")
-    return redirect_to final_report_assistant_session_path(@session)
-  end
+  def create
+    @session = current_user.assistant_sessions.find(params[:assistant_session_id])
 
-  raw_input = params.dig(:message, :content).to_s
-  user_input = raw_input.strip.downcase
-
-  # Detect "end" command BEFORE saving message
-  if user_input.start_with?("end")
-    @session.update!(status: "completed")
-
-    respond_to do |format|
-      format.html { redirect_to final_report_assistant_session_path(@session) }
-      format.turbo_stream do
-        render turbo_stream: turbo_stream.replace(
-          "messages",
-          partial: "assistant_sessions/redirect_to_report",
-          locals: { session: @session }
-        )
-      end
+    # End interview if expired
+    if @session.expired?
+      @session.update!(status: "completed")
+      return redirect_to final_report_assistant_session_path(@session)
     end
 
-    return
-  end
+    raw_input = params.dig(:message, :content).to_s
+    user_input = raw_input.strip.downcase
 
-  # Save user message
-  @message = @session.messages.create!(role: "user", content: raw_input)
+    # Detect "end" command BEFORE saving message
+    if user_input.start_with?("end")
+      @session.update!(status: "completed")
 
-  # If last question
-  if @session.current_question_number >= 25
-    @session.update!(status: "completed")
-    return redirect_to final_report_assistant_session_path(@session)
-  end
+      respond_to do |format|
+        format.html { redirect_to final_report_assistant_session_path(@session) }
 
-  # Generate next question
-  next_q = @session.current_question_number + 1
+        # Turbo Stream redirect to report
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "messages",
+            partial: "assistant_sessions/redirect_to_report",
+            locals: { session: @session }
+          )
+        end
+      end
 
-  chat = RubyLLM.chat(model: "gpt-4o-mini")
+      return
+    end
 
-  history = @session.messages.order(:created_at).last(10)
-             .map { |m| "#{m.role.capitalize}: #{m.content}" }.join("\n")
+    # Save user message
+    @message = @session.messages.create!(
+      role: "user",
+      content: raw_input
+    )
 
-  ai_response = chat.ask(<<~PROMPT)
-    #{SystemPrompt.text}
+    # Last question reached
+    if @session.current_question_number >= 25
+      @session.update!(status: "completed")
+      return redirect_to final_report_assistant_session_path(@session)
+    end
 
-    Role: #{@session.role}
+    # Generate next question
+    next_q = @session.current_question_number + 1
 
-    Recent conversation:
-    #{history}
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    Ask interview question number #{next_q}.
-  PROMPT
+    history = @session.messages.order(:created_at).last(10)
+               .map { |m| "#{m.role.capitalize}: #{m.content}" }.join("\n")
 
-  @assistant_msg = @session.messages.create!(
-    role: "assistant",
-    content: ai_response.content
-  )
+    ai_response = chat.ask(<<~PROMPT)
+      #{SystemPrompt.text}
 
-  @session.update!(current_question_number: next_q)
+      Role: #{@session.role}
 
-  respond_to do |format|
-    format.turbo_stream
-    format.html { redirect_to assistant_session_path(@session) }
+      Recent conversation:
+      #{history}
+
+      Ask interview question number #{next_q}.
+    PROMPT
+
+    @assistant_msg = @session.messages.create!(
+      role: "assistant",
+      content: ai_response.content
+    )
+
+    @session.update!(current_question_number: next_q)
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to assistant_session_path(@session) }
+    end
   end
 end
