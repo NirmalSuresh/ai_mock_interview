@@ -1,22 +1,7 @@
-<% if defined?(@assistant_msg) && @assistant_msg.present? %>
-  <%= turbo_stream.append "messages" do %>
-    <%= render @assistant_msg %>
-  <% end %>
+<%= turbo_stream.append "messages", partial: "messages/message", locals: { message: @message } %>
+
+<% if @assistant_msg.present? %>
+  <%= turbo_stream.append "messages", partial: "messages/message", locals: { message: @assistant_msg } %>
 <% end %>
 
-<%= turbo_stream.replace "message_form" do %>
-  <%= render "messages/form", session: @session %>
-<% end %>
-
-<%= turbo_stream.after "messages" do %>
-  <turbo-stream action="after" target="messages">
-    <template>
-      <script>
-        setTimeout(() => {
-          const el = document.getElementById("messages");
-          if (el) { el.scrollTop = el.scrollHeight; }
-        }, 50);
-      </script>
-    </template>
-  </turbo-stream>
-<% end %>
+<%= turbo_stream.replace "message_content", "" %>
