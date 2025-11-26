@@ -1,13 +1,12 @@
 <div class="container mt-4">
-  <h2>Your Chats</h2>
-  <hr>
+  <h2>Your Mock Interviews</h2>
 
-  <%= link_to "Start New Chat", new_assistant_session_path, class: "btn btn-primary mb-3" %>
+  <%= link_to "Start New Interview", new_assistant_session_path, class: "btn btn-primary mt-3" %>
 
-  <ul>
+  <ul class="mt-4">
     <% @sessions.each do |s| %>
       <li>
-        <%= link_to "Chat ##{s.id}", assistant_session_path(s) %>
+        <%= link_to "Interview ##{s.id} – #{s.role} (#{s.status})", assistant_session_path(s) %>
       </li>
     <% end %>
   </ul>

@@ -1,0 +1,4 @@
+<%= form_with url: assistant_session_messages_path(session) do %>
+  <%= text_field_tag :content, nil, class: "form-control", placeholder: "Your answer..." %>
+  <%= submit_tag "Send", class: "btn btn-primary mt-2" %>
+<% end %>

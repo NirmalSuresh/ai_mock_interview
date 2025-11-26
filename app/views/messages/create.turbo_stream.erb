@@ -1,0 +1,7 @@
+<%= turbo_stream.append "messages" do %>
+  <%= render partial: "messages/message", collection: @session.messages.last(2) %>
+<% end %>
+
+<%= turbo_stream.replace "answer_form" do %>
+  <%= render partial: "messages/form", locals: { session: @session } %>
+<% end %>

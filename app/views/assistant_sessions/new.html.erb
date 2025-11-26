@@ -1,7 +1,12 @@
 <div class="container mt-4">
-  <h2>Start a New Chat</h2>
+  <h2>Start a New Mock Interview</h2>
 
-  <%= form_with url: assistant_sessions_path, method: :post, local: true do %>
-    <%= submit_tag "Start Chat", class: "btn btn-success" %>
+  <%= form_with url: assistant_sessions_path, local: true do %>
+    <div class="form-group">
+      <label>Role</label>
+      <%= text_field_tag :role, nil, class: "form-control", placeholder: "e.g. Backend Developer" %>
+    </div>
+
+    <%= submit_tag "Start Interview", class: "btn btn-success mt-3" %>
   <% end %>
 </div>
