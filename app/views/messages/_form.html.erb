@@ -1,8 +1,12 @@
-<div id="answer_form">
-  <%= form_with model: [session, message] do |f| %>
+<%= turbo_frame_tag "new_message" do %>
+  <%= form_with model: [session, Message.new], data: { turbo_stream: true }, class: "flex gap-2 mt-3" do |f| %>
     <%= f.text_field :content,
-                     class: "form-control",
-                     placeholder: "Your answer... (type 'end' to finish)" %>
-    <%= f.submit "Send", class: "btn btn-primary mt-2" %>
+         placeholder: "Type your answer… (type 'end' to finish)",
+         class: "flex-grow border p-2 rounded",
+         autocomplete: "off",
+         id: "message_input" %>
+
+    <%= f.submit "Send",
+         class: "bg-blue-600 text-white px-4 py-2 rounded" %>
   <% end %>
-</div>
+<% end %>

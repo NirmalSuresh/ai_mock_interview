@@ -1,8 +1,9 @@
-<%= turbo_stream.append "messages" do %>
-  <%= render @message %>
-  <%= render @assistant_message %>
+<%= turbo_stream.append "messages_list", partial: "messages/message", locals: { message: @message } %>
+
+<% if @assistant_message %>
+  <%= turbo_stream.append "messages_list", partial: "messages/message", locals: { message: @assistant_message } %>
 <% end %>
 
-<%= turbo_stream.replace "answer_form" do %>
-  <%= render "messages/form", session: @session, message: Message.new %>
-<% end %>
+<%= turbo_stream.replace "new_message", partial: "messages/form", locals: { session: @session } %>
+
+<%= turbo_stream.invoke "autoscroll#scrollToBottom" %>

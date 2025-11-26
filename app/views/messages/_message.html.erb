@@ -1,4 +1,4 @@
-<p>
+<div class="p-3 rounded <%= message.role == 'assistant' ? 'bg-gray-200' : 'bg-blue-200 text-right' %>">
   <strong><%= message.role.capitalize %>:</strong>
-  <%= message.content %>
-</p>
+  <%= simple_format(message.content) %>
+</div>

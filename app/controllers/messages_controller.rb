@@ -3,43 +3,44 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    # End interview if timer expired
+    # 1) End interview if timer expired
     if @session.expired?
       @session.update!(status: "completed") unless @session.completed?
       return redirect_to final_report_assistant_session_path(@session),
                          alert: "Time is up. Interview finished."
     end
 
-    # Normalize user input
-    raw_input = params.dig(:message, :content).to_s
+    # 2) Normalize user input
+    raw_input  = params.dig(:message, :content).to_s
     user_input = raw_input.strip
+    Rails.logger.info "==== USER TYPED: #{user_input.inspect} ===="
 
-    # Ignore empty answers
+    # 3) Ignore empty answers
     if user_input.blank?
       return redirect_to assistant_session_path(@session)
     end
 
-    # Check for end commands BEFORE saving message
+    # 4) Check for end commands BEFORE saving message
     if end_command?(user_input)
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session),
                          notice: "Interview ended by you."
     end
 
-    # Save user's answer
+    # 5) Save user's answer
     @message = @session.messages.create!(
       role: "user",
       content: user_input
     )
 
-    # If already at last question
+    # 6) If already at last question, finish now
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session),
                          notice: "Interview completed."
     end
 
-    # Generate the next question
+    # 7) Generate the next question
     next_q = @session.current_question_number + 1
 
     # Take conversation history for context (last 10 messages)
@@ -66,10 +67,10 @@ class MessagesController < ApplicationController
       content: ai_response.content
     )
 
-    # Update session progress
+    # 8) Update session progress
     @session.update!(current_question_number: next_q)
 
-    # Turbo Stream append messages + clear input
+    # 9) Turbo Stream append messages + clear input
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to assistant_session_path(@session) }
@@ -83,7 +84,7 @@ class MessagesController < ApplicationController
   end
 
   def end_command?(content)
-    normalized = content.downcase.strip
-    ["end", "end test", "end the test", "finish", "stop", "quit"].include?(normalized)
-  end
+  normalized = content.to_s.downcase.strip
+  normalized == "end" || normalized.start_with?("end ")
+end
 end
