@@ -10,8 +10,9 @@ class AssistantSession < ApplicationRecord
     status == "completed"
   end
 
-  def time_left_seconds
+  def time_left
     return 0 unless ends_at.present?
-    [ends_at - Time.current, 0].max.to_i
+    remaining = (ends_at - Time.current).to_i
+    remaining.positive? ? remaining : 0
   end
 end
