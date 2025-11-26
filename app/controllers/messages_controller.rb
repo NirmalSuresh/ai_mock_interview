@@ -3,8 +3,7 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    raw_input = params.dig(:message, :content).to_s
-    user_input = raw_input.strip
+    user_input = params[:content].to_s.strip
 
     return redirect_to assistant_session_path(@session) if user_input.blank?
 
@@ -57,8 +56,7 @@ class MessagesController < ApplicationController
     @session = current_user.assistant_sessions.find(params[:assistant_session_id])
   end
 
-  def end_command?(content)
-    normalized = content.to_s.downcase.strip
-    normalized == "end" || normalized.start_with?("end ")
+  def end_command?(text)
+    text.downcase.strip.start_with?("end")
   end
 end

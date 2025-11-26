@@ -1,16 +1,19 @@
 <%= turbo_frame_tag "new_message" do %>
-  <%= form_with model: [session, Message.new],
-                data: { turbo_stream: true },
-                class: "flex gap-3 p-3 border rounded bg-gray-50 shadow-md" do |f| %>
+  <%= form_with(
+        url: assistant_session_messages_path(session),
+        method: :post,
+        data: { turbo_stream: true, turbo: true },
+        class: "flex gap-3 p-4 sticky bottom-0 bg-white border-t shadow-lg"
+      ) do |f| %>
 
-    <%= f.text_area :content,
-        placeholder: "Type your answer…",
-        rows: 2,
-        class: "flex-grow border p-3 rounded-lg resize-none text-base",
-        id: "message_input" %>
+    <%= text_area_tag :content, "",
+          placeholder: "Type your answer…",
+          rows: 2,
+          class: "flex-grow border p-3 rounded-xl resize-none text-lg",
+          id: "chat_input" %>
 
-    <%= f.submit "Send",
-        class: "bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-semibold" %>
+    <%= submit_tag "Send",
+          class: "bg-blue-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700" %>
 
   <% end %>
 <% end %>
