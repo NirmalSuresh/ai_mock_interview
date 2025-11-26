@@ -1,19 +1,13 @@
-<%= turbo_frame_tag "new_message" do %>
-  <%= form_with(
-        url: assistant_session_messages_path(session),
-        method: :post,
-        data: { turbo_stream: true, turbo: true },
-        class: "flex gap-3 p-4 sticky bottom-0 bg-white border-t shadow-lg"
-      ) do |f| %>
+<div id="message_form" class="w-full mt-4">
+  <%= form_with model: [session, Message.new], data: { turbo_stream: true }, html: { class: "flex gap-3 w-full" } do |f| %>
 
-    <%= text_area_tag :content, "",
-          placeholder: "Type your answer…",
-          rows: 2,
-          class: "flex-grow border p-3 rounded-xl resize-none text-lg",
-          id: "chat_input" %>
+    <%= f.text_area :content,
+      rows: 2,
+      placeholder: "Type your answer… (type 'end' to finish)",
+      class: "flex-grow p-3 border rounded-xl bg-gray-50 focus:bg-white focus:outline-none resize-none text-lg" %>
 
-    <%= submit_tag "Send",
-          class: "bg-blue-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700" %>
+    <%= f.submit "Send",
+      class: "px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-lg font-semibold" %>
 
   <% end %>
-<% end %>
+</div>

@@ -20,3 +20,10 @@
     <%= yield %>
   </body>
 </html>
+
+<script>
+  function scrollToBottom() {
+    const box = document.getElementById("messages");
+    if (box) box.scrollTop = box.scrollHeight;
+  }
+</script>

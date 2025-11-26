@@ -1,14 +1,10 @@
-<h2 class="text-2xl font-bold mb-4">
+<h1 class="text-2xl font-bold mb-4">
   Interview for <%= @session.role %> — Question <%= @session.current_question_number %>/25
-</h2>
+</h1>
 
-<div id="messages"
-     data-controller="autoscroll"
-     class="space-y-4 max-h-[70vh] overflow-y-auto p-4 border rounded bg-white shadow">
-
-  <%= turbo_frame_tag "messages_list" do %>
-    <%= render @session.messages %>
-  <% end %>
+<div id="messages" data-controller="autoscroll"
+     class="space-y-4 max-h-[70vh] overflow-y-auto p-4 bg-gray-100 rounded-xl shadow-inner">
+  <%= render @session.messages %>
 </div>
 
 <%= render "messages/form", session: @session %>

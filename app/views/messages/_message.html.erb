@@ -1,4 +1,4 @@
-<div class="<%= message.role == 'assistant' ? 'bg-gray-200' : 'bg-blue-100' %> p-4 rounded-xl shadow-sm">
-  <strong class="block mb-1"><%= message.role.capitalize %>:</strong>
-  <p class="whitespace-pre-line"><%= message.content %></p>
+<div class="p-3 rounded border bg-white shadow-sm">
+  <strong><%= message.role.capitalize %>:</strong>
+  <%= simple_format message.content %>
 </div>
