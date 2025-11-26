@@ -1,12 +1,17 @@
 <%= turbo_frame_tag "new_message" do %>
-  <%= form_with model: [session, Message.new], data: { turbo_stream: true }, class: "flex gap-2 mt-3" do |f| %>
-    <%= f.text_field :content,
-         placeholder: "Type your answer… (type 'end' to finish)",
-         class: "flex-grow border p-2 rounded",
-         autocomplete: "off",
-         id: "message_input" %>
+  <%= form_with model: [session, Message.new],
+                data: { turbo_stream: true },
+                class: "flex items-center w-full gap-3 p-3 border rounded bg-gray-50 shadow-md" do |f| %>
+
+    <%= f.text_area :content,
+        placeholder: "Type your answer… (type \"end\" to finish)",
+        rows: 2,
+        class: "flex-grow border p-3 rounded-lg resize-none shadow-sm text-base",
+        autocomplete: "off",
+        id: "message_input" %>
 
     <%= f.submit "Send",
-         class: "bg-blue-600 text-white px-4 py-2 rounded" %>
+        class: "bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-3 rounded-lg shadow" %>
+
   <% end %>
 <% end %>

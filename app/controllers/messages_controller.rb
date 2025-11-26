@@ -85,6 +85,6 @@ class MessagesController < ApplicationController
 
   def end_command?(content)
   normalized = content.to_s.downcase.strip
-  normalized == "end" || normalized.start_with?("end ")
+  %w[end finish stop quit exit].any? { |cmd| normalized == cmd || normalized.start_with?(cmd + " ") }
 end
 end
