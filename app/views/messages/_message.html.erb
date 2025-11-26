@@ -1,5 +1,8 @@
-<div class="<%= message.role == 'user' ? 'text-right' : 'text-left' %>">
-  <div class="<%= message.role == 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200' %> inline-block px-4 py-2 rounded-lg mb-2">
+<% user = message.role == "user" %>
+
+<div class="<%= user ? 'text-right' : 'text-left' %> my-2">
+  <div class="inline-block px-4 py-2 rounded-lg mb-2 shadow-sm
+              <%= user ? 'bg-blue-600 text-white' : 'bg-gray-100 text-black' %>">
     <%= message.content %>
   </div>
 </div>
