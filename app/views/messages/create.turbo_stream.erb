@@ -1,13 +1,11 @@
-<%= turbo_stream.append "messages_list",
-      partial: "messages/message",
-      locals: { message: @message } %>
+<% if defined?(@assistant_msg) && @assistant_msg.present? %>
+  <%= turbo_stream.append "messages" do %>
+    <%= render @assistant_msg %>
+  <% end %>
+<% end %>
 
-<%= turbo_stream.append "messages_list",
-      partial: "messages/message",
-      locals: { message: @assistant_message } %>
+<%= turbo_stream.replace "message_form" do %>
+  <%= render "messages/form", session: @session %>
+<% end %>
 
-<%= turbo_stream.replace "new_message",
-      partial: "messages/form",
-      locals: { session: @session } %>
-
-<%= turbo_stream.invoke "autoscroll#scrollToBottom" %>
+<%= turbo_stream.invoke "scrollToBottom" %>
