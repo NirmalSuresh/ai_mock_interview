@@ -1,14 +1,23 @@
 class AssistantSessionsController < ApplicationController
   before_action :authenticate_user!
 
+  # -------------------------
+  # LIST ALL SESSIONS
+  # -------------------------
   def index
     @sessions = current_user.assistant_sessions.order(created_at: :desc)
   end
 
+  # -------------------------
+  # NEW INTERVIEW PAGE
+  # -------------------------
   def new
     @session = AssistantSession.new
   end
 
+  # -------------------------
+  # CREATE INTERVIEW SESSION
+  # -------------------------
   def create
     @session = current_user.assistant_sessions.create!(
       role: params[:role],
@@ -18,8 +27,9 @@ class AssistantSessionsController < ApplicationController
       status: "in_progress"
     )
 
-    # Generate Question 1
+    # Ask Question 1
     chat = RubyLLM.chat(model: "gpt-4o-mini")
+
     ai_response = chat.ask(
       "#{SystemPrompt.text}\n\n" \
       "Role: #{params[:role]}\n" \
@@ -34,24 +44,26 @@ class AssistantSessionsController < ApplicationController
     redirect_to assistant_session_path(@session)
   end
 
+  # -------------------------
+  # SHOW LIVE INTERVIEW
+  # -------------------------
   def show
     @session   = current_user.assistant_sessions.find(params[:id])
     @messages  = @session.messages.order(:created_at)
     @time_left = @session.time_left
   end
 
+  # -------------------------
+  # FINAL REPORT PAGE
+  # -------------------------
   def final_report
-    @session  = current_user.assistant_sessions.find(params[:id])
+    @session = current_user.assistant_sessions.find(params[:id])
     @messages = @session.messages.order(:created_at)
 
-    # === Critical Fix: Safely evaluate & save results ===
-    result = InterviewEvaluator.call(@session) || {}
+    # Generate score & feedback
+    InterviewEvaluator.call(@session)
 
-    @session.update!(
-      ai_feedback: result[:feedback].presence || "AI could not generate feedback.",
-      score:       result[:score].presence || 0,
-      strengths:   result[:strengths].presence || "Not available",
-      weaknesses:  result[:weaknesses].presence || "Not available"
-    )
+    # Always render the report page
+    render :final_report
   end
 end
