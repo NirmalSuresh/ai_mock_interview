@@ -10,8 +10,8 @@ class AssistantSessionsController < ApplicationController
   end
 
   def create
-    @session = current_user.assistant_sessions.create!
-    redirect_to assistant_session_path(@session)
+    session = current_user.assistant_sessions.create!
+    redirect_to assistant_session_path(session)
   end
 
   def show
