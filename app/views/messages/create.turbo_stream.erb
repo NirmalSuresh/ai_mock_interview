@@ -8,4 +8,15 @@
   <%= render "messages/form", session: @session %>
 <% end %>
 
-<%= turbo_stream.invoke "scrollToBottom" %>
+<%= turbo_stream.after "messages" do %>
+  <turbo-stream action="after" target="messages">
+    <template>
+      <script>
+        setTimeout(() => {
+          const el = document.getElementById("messages");
+          if (el) { el.scrollTop = el.scrollHeight; }
+        }, 50);
+      </script>
+    </template>
+  </turbo-stream>
+<% end %>
