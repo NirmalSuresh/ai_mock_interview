@@ -1,7 +1,13 @@
-<%= turbo_stream.append "messages", partial: "messages/message", locals: { message: @message } %>
+<%= turbo_stream.append "messages",
+      partial: "messages/message",
+      locals: { message: @message } %>
 
 <% if @assistant_msg.present? %>
-  <%= turbo_stream.append "messages", partial: "messages/message", locals: { message: @assistant_msg } %>
+  <%= turbo_stream.append "messages",
+        partial: "messages/message",
+        locals: { message: @assistant_msg } %>
 <% end %>
 
 <%= turbo_stream.replace "message_content", "" %>
+
+<%= turbo_stream.invoke "scrollToBottom" %>
