@@ -4,29 +4,19 @@ class MessagesController < ApplicationController
   def create
     @session = AssistantSession.find(params[:assistant_session_id])
 
-    # Save user message
-    @session.messages.create!(
+    user_message = @session.messages.create!(
       role: "user",
       content: params[:content]
     )
 
-    # Prepare conversation history
-    history = @session.messages.map do |msg|
-      { role: msg.role, content: msg.content }
-    end
+    # RubyLLM chat call
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    # Call AI (RubyLLM)
-    ai = RubyLLM::Chat.completions(
-      model: "gpt-4o-mini",
-      messages: history
-    )
+    ai_response = chat.ask(params[:content])  # << IMPORTANT: .ask instead of .completions
 
-    ai_reply = ai.output  # <-- IMPORTANT: this is the actual string
-
-    # Save assistant reply
-    @session.messages.create!(
+    assistant_message = @session.messages.create!(
       role: "assistant",
-      content: ai_reply
+      content: ai_response.content
     )
 
     redirect_to assistant_session_path(@session)
