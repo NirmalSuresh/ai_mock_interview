@@ -15,6 +15,27 @@
 <%= render "messages/form", session: @session %>
 
 <script>
+  function startTimer(seconds) {
+    let time = seconds;
+    const timerDisplay = document.getElementById("timer");
+
+    function updateTimer() {
+      if (!timerDisplay) return;
+
+      const minutes = Math.floor(time / 60);
+      const secs = time % 60;
+
+      timerDisplay.textContent =
+        `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+      if (time <= 0) return;
+      time--;
+      setTimeout(updateTimer, 1000);
+    }
+
+    updateTimer();
+  }
+
   document.addEventListener("turbo:load", () => {
     startTimer(<%= @time_left_seconds %>);
   });

@@ -51,9 +51,9 @@ def show
   @session   = current_user.assistant_sessions.find(params[:id])
   @messages  = @session.messages.order(:created_at)
 
-  @time_left_seconds = @session.time_left # <-- ADD THIS
+  # IMPORTANT
+  @time_left_seconds = @session.time_left.to_i
 end
-
 
   # -------------------------
   # FINAL REPORT PAGE
