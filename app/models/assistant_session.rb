@@ -3,11 +3,15 @@ class AssistantSession < ApplicationRecord
   has_many :messages, dependent: :destroy
 
   def expired?
-    Time.current >= ends_at
+    ends_at.present? && Time.current > ends_at
   end
 
-  def time_left
-    return 0 if expired?
-    (ends_at - Time.current).to_i
+  def completed?
+    status == "completed"
+  end
+
+  def time_left_seconds
+    return 0 unless ends_at.present?
+    [ends_at - Time.current, 0].max.to_i
   end
 end

@@ -1,6 +1,7 @@
-import { application } from "./application"
+import { application } from "controllers/application"
 
-// Load all controllers
-import TimerController from "./timer_controller"
+import autoscrollController from "./autoscroll_controller"
+application.register("autoscroll", autoscrollController)
 
-application.register("timer", TimerController)
+import timerController from "./timer_controller"
+application.register("timer", timerController)

@@ -2,41 +2,18 @@
   Interview for <%= @session.role %> — Question <%= @session.current_question_number %>/25
 </h1>
 
-<!-- TIMER DISPLAY -->
-<div class="mb-3 text-lg font-semibold">
+<!-- TIMER DISPLAY (Stimulus Timer) -->
+<div data-controller="timer"
+     data-timer-seconds-value="<%= @time_left_seconds %>"
+     class="mb-3 text-lg font-semibold">
   Time Left: <span id="timer">--:--</span>
 </div>
 
+<!-- MESSAGES LIST -->
 <div id="messages" data-controller="autoscroll"
      class="space-y-3 max-h-[70vh] overflow-y-auto p-2 border rounded">
   <%= render @messages %>
 </div>
 
+<!-- MESSAGE FORM -->
 <%= render "messages/form", session: @session %>
-
-<script>
-  function startTimer(seconds) {
-    let time = seconds;
-    const timerDisplay = document.getElementById("timer");
-
-    function updateTimer() {
-      if (!timerDisplay) return;
-
-      const minutes = Math.floor(time / 60);
-      const secs = time % 60;
-
-      timerDisplay.textContent =
-        `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
-      if (time <= 0) return;
-      time--;
-      setTimeout(updateTimer, 1000);
-    }
-
-    updateTimer();
-  }
-
-  document.addEventListener("turbo:load", () => {
-    startTimer(<%= @time_left_seconds %>);
-  });
-</script>
