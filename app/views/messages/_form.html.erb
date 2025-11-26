@@ -1,9 +1,13 @@
-<%= form_with model: [session, Message.new], data: { turbo_stream: true }, class: "mt-4 flex gap-3" do |f| %>
+<%= form_with model: [session, Message.new],
+              data: { turbo_stream: true } do |f| %>
+
   <%= f.text_field :content,
       id: "message_content",
-      class: "flex-1 border rounded px-3 py-2 text-lg",
-      placeholder: "Type your answer…" %>
+      class: "w-full border p-2 rounded mb-2",
+      placeholder: "Type your answer…",
+      autofocus: true %>
 
   <%= f.submit "Send",
-      class: "bg-blue-600 text-white px-4 py-2 rounded-lg" %>
+      class: "bg-blue-500 text-white px-4 py-2 rounded" %>
+
 <% end %>

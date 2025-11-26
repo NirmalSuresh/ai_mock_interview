@@ -1,8 +1,17 @@
 <%= turbo_stream.append "messages" do %>
-  <%= render partial: "messages/message", locals: { message: @message } %>
-  <% if @assistant_msg.present? %>
-    <%= render partial: "messages/message", locals: { message: @assistant_msg } %>
+  <%= render @message %>
+<% end %>
+
+<% if @assistant_msg.present? %>
+  <%= turbo_stream.append "messages" do %>
+    <%= render @assistant_msg %>
   <% end %>
 <% end %>
 
-<%= turbo_stream.replace "message_content", "" %>
+<%= turbo_stream.replace "message_content" do %>
+  <%= tag.input type: "text",
+                name: "message[content]",
+                id: "message_content",
+                class: "w-full border p-2 rounded",
+                placeholder: "Type your answer…" %>
+<% end %>
