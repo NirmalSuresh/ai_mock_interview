@@ -6,6 +6,7 @@ class AssistantSessionsController < ApplicationController
   end
 
   def new
+    @session = AssistantSession.new
   end
 
   def create
@@ -17,6 +18,7 @@ class AssistantSessionsController < ApplicationController
       status: "in_progress"
     )
 
+    # Generate Question 1 immediately
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
     ai_response = chat.ask(
@@ -34,7 +36,15 @@ class AssistantSessionsController < ApplicationController
   end
 
   def show
-    @session = current_user.assistant_sessions.find(params[:id])
-    @messages = @session.messages.order(created_at: :asc)
+    @session   = current_user.assistant_sessions.find(params[:id])
+    @messages  = @session.messages.order(:created_at)
+    @time_left = @session.time_left
+  end
+
+  def final_report
+    @session  = current_user.assistant_sessions.find(params[:id])
+    @messages = @session.messages.order(:created_at)
+
+    InterviewEvaluator.call(@session)
   end
 end

@@ -4,6 +4,8 @@ class AssistantSession < ApplicationRecord
 
   validates :role, presence: true
 
+  # status: "in_progress" or "completed"
+
   def completed?
     status == "completed"
   end
@@ -13,7 +15,7 @@ class AssistantSession < ApplicationRecord
   end
 
   def time_left
-    return 0 if expired?
+    return 0 if expired? || ends_at.blank?
     (ends_at - Time.current).to_i
   end
 end

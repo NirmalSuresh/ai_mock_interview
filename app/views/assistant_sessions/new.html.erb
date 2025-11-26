@@ -3,8 +3,11 @@
 
   <%= form_with url: assistant_sessions_path, local: true do %>
     <div class="form-group">
-      <label>Role</label>
-      <%= text_field_tag :role, nil, class: "form-control", placeholder: "e.g. Backend Developer" %>
+      <label>Role you are preparing for</label>
+      <%= text_field_tag :role,
+                         nil,
+                         class: "form-control",
+                         placeholder: "e.g. Backend Developer" %>
     </div>
 
     <%= submit_tag "Start Interview", class: "btn btn-success mt-3" %>
