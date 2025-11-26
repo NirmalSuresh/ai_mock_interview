@@ -3,44 +3,46 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    # End if timer expired
+    # End interview if timer expired
     if @session.expired?
       @session.update!(status: "completed") unless @session.completed?
       return redirect_to final_report_assistant_session_path(@session),
                          alert: "Time is up. Interview finished."
     end
 
-    raw_content = params.dig(:message, :content).to_s
-    content     = raw_content.strip
+    # Normalize user input
+    raw_input = params.dig(:message, :content).to_s
+    user_input = raw_input.strip
 
     # Ignore empty answers
-    if content.blank?
+    if user_input.blank?
       return redirect_to assistant_session_path(@session)
     end
 
-    # Save user's answer
-    @message = @session.messages.create!(
-      role: "user",
-      content: raw_content
-    )
-
-    # If user wants to end the test manually
-    if end_command?(content)
+    # Check for end commands BEFORE saving message
+    if end_command?(user_input)
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session),
                          notice: "Interview ended by you."
     end
 
-    # If already at question 25, finish after this answer
+    # Save user's answer
+    @message = @session.messages.create!(
+      role: "user",
+      content: user_input
+    )
+
+    # If already at last question
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session),
                          notice: "Interview completed."
     end
 
-    # Generate next question
+    # Generate the next question
     next_q = @session.current_question_number + 1
 
+    # Take conversation history for context (last 10 messages)
     history = @session.messages.order(:created_at)
                  .last(10)
                  .map { |m| "#{m.role.capitalize}: #{m.content}" }
@@ -48,7 +50,7 @@ class MessagesController < ApplicationController
 
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    prompt = <<~PROMPT
+    ai_response = chat.ask(<<~PROMPT)
       #{SystemPrompt.text}
 
       Role: #{@session.role}
@@ -56,18 +58,18 @@ class MessagesController < ApplicationController
       Recent conversation:
       #{history}
 
-      Please ask interview question number #{next_q} for this role.
+      Ask interview question number #{next_q}.
     PROMPT
-
-    ai_response = chat.ask(prompt)
 
     @assistant_message = @session.messages.create!(
       role: "assistant",
       content: ai_response.content
     )
 
+    # Update session progress
     @session.update!(current_question_number: next_q)
 
+    # Turbo Stream append messages + clear input
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to assistant_session_path(@session) }
@@ -81,7 +83,7 @@ class MessagesController < ApplicationController
   end
 
   def end_command?(content)
-    normalized = content.downcase
+    normalized = content.downcase.strip
     ["end", "end test", "end the test", "finish", "stop", "quit"].include?(normalized)
   end
 end
