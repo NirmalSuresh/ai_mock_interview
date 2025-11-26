@@ -15,8 +15,7 @@ class AssistantSessionsController < ApplicationController
   end
 
   def show
-    @session = AssistantSession.find(params[:id])
+    @session = current_user.assistant_sessions.find(params[:id])
     @messages = @session.messages.order(:created_at)
-    @new_message = Message.new
   end
 end

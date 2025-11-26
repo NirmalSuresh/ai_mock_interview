@@ -13,8 +13,7 @@ gem "pg", "~> 1.1"
 
 gem "devise"
 
-gem "ruby-openai"
-
+gem "ruby_llm"
 
 
 # Use the Puma web server [https://github.com/puma/puma]
