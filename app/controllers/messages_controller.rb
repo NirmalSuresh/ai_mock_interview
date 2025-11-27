@@ -1,4 +1,5 @@
 require "pdf/reader"
+require "stringio"
 
 class MessagesController < ApplicationController
   before_action :authenticate_user!
@@ -35,7 +36,7 @@ class MessagesController < ApplicationController
       return respond_with_turbo
     end
 
-    # 🔥 Normal TEXT flow
+    # 🔥 Normal text flow
     @message.save!
 
     # If last question → finish
@@ -81,6 +82,7 @@ class MessagesController < ApplicationController
 
     response = chat.ask(<<~PROMPT)
       You are a professional assistant.
+
       A PDF was uploaded by the user. Extract meaning and summarize it.
 
       PDF Content:
@@ -92,9 +94,13 @@ class MessagesController < ApplicationController
     response.content
   end
 
-  # Safe PDF reader with error handling
+  # ✅ Cloudinary-safe PDF extraction (StringIO)
   def extract_pdf_text(file)
-    PDF::Reader.new(file.download).pages.map(&:text).join("\n")
+    downloaded_bytes = file.download # binary string from Cloudinary
+    io = StringIO.new(downloaded_bytes) # wrap for PDF::Reader
+
+    reader = PDF::Reader.new(io)
+    reader.pages.map(&:text).join("\n")
   rescue => e
     "PDF extraction error: #{e.message}"
   end
