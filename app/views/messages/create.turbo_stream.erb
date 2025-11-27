@@ -2,13 +2,16 @@
   <%= render @message %>
 <% end %>
 
-<% last_msg = @session.messages.order(:created_at).last %>
-<% if last_msg.role == "assistant" %>
+<% if @assistant_msg.present? %>
   <%= turbo_stream.append "messages" do %>
-    <%= render last_msg %>
+    <%= render @assistant_msg %>
   <% end %>
 <% end %>
 
-<%= turbo_stream.replace "message_form" do %>
-  <%= render "messages/form", session: @session %>
+<%= turbo_stream.replace "message_content" do %>
+  <%= tag.input type: "text",
+                name: "message[content]",
+                id: "message_content",
+                class: "form-control",
+                placeholder: "Type your answer…" %>
 <% end %>

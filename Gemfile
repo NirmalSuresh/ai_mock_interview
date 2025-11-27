@@ -15,9 +15,6 @@ gem "devise"
 
 gem "ruby_llm"
 
-gem "rubyllm", "~> 1.7"
-
-
 gem "pdf-reader"
 
 gem "cloudinary"

@@ -1,11 +1,12 @@
-require "rubyllm"
+require "ruby_llm"
+require "pdf-reader"
 
 class MessagesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_session
 
   def create
-    # If time expired → finish interview
+    # End interview when time expired
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -15,13 +16,13 @@ class MessagesController < ApplicationController
 
     raw_input = @message.content.to_s.strip.downcase
 
-    # END early
+    # Detect "end"
     if raw_input.start_with?("end")
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # PDF upload flow
+    # If PDF uploaded
     if @message.file.attached?
       @message.save!
 
@@ -35,7 +36,7 @@ class MessagesController < ApplicationController
       return respond_with_turbo
     end
 
-    # Normal text message flow
+    # Normal text answer
     @message.save!
 
     # If last question
@@ -44,11 +45,11 @@ class MessagesController < ApplicationController
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    next_question_number = @session.current_question_number + 1
+    next_question = @session.current_question_number + 1
 
     history = @session.messages.order(:created_at).last(10)
-                .map { |m| "#{m.role.capitalize}: #{m.content}" }
-                .join("\n")
+      .map { |m| "#{m.role.capitalize}: #{m.content}" }
+      .join("\n")
 
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
@@ -60,7 +61,7 @@ class MessagesController < ApplicationController
       Recent conversation:
       #{history}
 
-      Ask interview question number #{next_question_number}.
+      Ask interview question number #{next_question}.
     PROMPT
 
     @assistant_msg = @session.messages.create!(
@@ -68,51 +69,35 @@ class MessagesController < ApplicationController
       content: ai_response.content
     )
 
-    @session.update!(current_question_number: next_question_number)
+    @session.update!(current_question_number: next_question)
 
     respond_with_turbo
   end
 
   private
 
-  ###########################################################
-  #  FIXED PDF HANDLER – WORKS WITH ALL RUBYLLM VERSIONS
-  ###########################################################
   def handle_pdf(file)
-    pdf_data = file.download
+    text = extract_pdf_text(file)
 
-    client = RubyLLM::Client.new(model: "gpt-4o-mini")
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    response = client.chat(
-      messages: [
-        {
-          role: "system",
-          content: "You are an AI assistant. Extract and summarize the content of the uploaded PDF. Use OCR if needed."
-        },
-        {
-          role: "user",
-          content: "Summarize the following PDF."
-        }
-      ],
-      input: [
-        {
-          type: "input_text",
-          text: "PDF uploaded by the user."
-        },
-        {
-          type: "input_file",
-          mime_type: "application/pdf",
-          data: pdf_data
-        }
-      ]
-    )
+    response = chat.ask(<<~PROMPT)
+      A PDF was uploaded. Extract meaning and summarize it clearly.
 
-    response["output_text"]
+      PDF Content:
+      #{text}
+
+      Provide a structured summary.
+    PROMPT
+
+    response.content
   end
 
-  ###########################################################
-  # Helpers
-  ###########################################################
+  def extract_pdf_text(file)
+    reader = PDF::Reader.new(StringIO.new(file.download))
+    reader.pages.map(&:text).join("\n")
+  end
+
   def respond_with_turbo
     respond_to do |format|
       format.turbo_stream
@@ -126,6 +111,5 @@ class MessagesController < ApplicationController
 
   def set_session
     @session = current_user.assistant_sessions.find(params[:assistant_session_id])
-    @messages = @session.messages.order(:created_at)
   end
 end
