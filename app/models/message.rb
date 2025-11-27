@@ -38,9 +38,14 @@ class Message < ApplicationRecord
   # HELPERS
   # ---------------------------
   def attachment_url
-    return nil unless attachment.attached?
-    attachment.blob.service_url(expires_in: 1.hour, disposition: :inline)
-  end
+  return unless attachment.attached?
+
+  Rails.application.routes.url_helpers.rails_blob_url(
+    attachment,
+    host: ENV.fetch("HOST_URL", "https://ai-mock-interview-njap.onrender.com")
+  )
+end
+
 
   def attachment_content_type
     attachment&.blob&.content_type
