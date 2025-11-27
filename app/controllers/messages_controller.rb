@@ -31,14 +31,14 @@ class MessagesController < ApplicationController
       return
     end
 
-    # --- SAVE MESSAGE (TEXT + OPTIONAL FILE) ---
+    # --- SAVE MESSAGE (text + optional file) ---
     @message = @session.messages.create!(
       role: "user",
       content: raw_input.presence,
       attachment: message_params[:attachment]
     )
 
-    # --- IF FILE ATTACHED → ANALYZE AND REPLY ---
+    # --- FILE ATTACHED → ANALYZE ---
     if @message.attachment.attached?
       ai_text = FileAnalyzer.call(@message)
 
@@ -50,7 +50,7 @@ class MessagesController < ApplicationController
       return respond_ok
     end
 
-    # --- NORMAL INTERVIEW FLOW ---
+    # --- NORMAL INTERVIEW QUESTION FLOW ---
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)

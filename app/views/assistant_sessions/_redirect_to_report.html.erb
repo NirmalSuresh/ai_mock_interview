@@ -1,21 +1,22 @@
-<%= turbo_stream.append "messages" do %>
-  <div class="p-4 text-center text-lg font-semibold">
-    Ending interview...
-    <div class="spinner-border text-primary mt-2" role="status">
-      <span class="visually-hidden">Loading...</span>
-    </div>
+<div class="p-4 text-center text-lg font-semibold">
+  Ending interview...
 
-    <script>
-      (function() {
-        var url = "<%= final_report_assistant_session_path(session) %>";
-
-        // Prefer Turbo if available
-        if (window.Turbo && typeof Turbo.visit === "function") {
-          Turbo.visit(url);
-        } else {
-          window.location.href = url;
-        }
-      })();
-    </script>
+  <div class="spinner-border text-primary mt-2" role="status">
+    <span class="visually-hidden">Loading...</span>
   </div>
-<% end %>
+
+  <script>
+    (function() {
+      var url = "<%= final_report_assistant_session_path(session) %>";
+
+      // Turbo-powered redirect (preferred)
+      if (window.Turbo && typeof Turbo.visit === "function") {
+        Turbo.visit(url);
+      }
+      // Fallback for older browsers
+      else {
+        window.location.href = url;
+      }
+    })();
+  </script>
+</div>
