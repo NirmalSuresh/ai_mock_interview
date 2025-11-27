@@ -1,37 +1,40 @@
 class FileAnalyzer
   def self.call(message)
-    file = message.attachment
-    file_data = file.download
-    filename = file.filename.to_s
-    content_type = file.content_type
+    attachment = message.attachment
 
-    prompt = case content_type
+    return "No file found." unless attachment.attached?
+
+    file_bytes = attachment.download
+    filename = attachment.filename.to_s
+    content_type = attachment.content_type
+
+    # A simple instruction for system prompt
+    system_prompt = case content_type
     when /\Aimage\//
-      "You are an AI that analyzes an uploaded IMAGE. Describe it, extract text, and give interview insights."
+      "You are an expert at analyzing user-uploaded IMAGES. Describe the image, extract text, and give interview insights."
     when /\Aaudio\//
-      "You are an AI that analyzes an uploaded AUDIO file. Transcribe it, summarize it, and give communication feedback."
-    when "application/pdf",
-         "text/plain",
-         "application/msword",
-         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      "You are an AI that analyzes an uploaded DOCUMENT. Extract text, summarize it, and give interview insights."
+      "You are an expert at analyzing AUDIO files. Transcribe the speech, summarize, and give communication feedback."
+    when /pdf|msword|text|officedocument/
+      "You are an expert at analyzing DOCUMENTS. Extract text, summarize, and give interview insights."
     else
-      "Analyze this uploaded file (type: #{content_type})."
+      "You are an AI assistant. Analyze the uploaded file."
     end
 
-    chat = RubyLLM.chat(model: "gpt-4o-mini")
+    # RUBYLLM LEGACY API
+    client = RubyLLM.chat(model: "gpt-4o-mini")
 
-    response = chat.ask(
-      prompt,
+    result = client.ask(
+      system_prompt,
       attachments: [
         {
           name: filename,
-          content_type: content_type,
-          data: file_data
+          data: file_bytes,
+          content_type: content_type
         }
       ]
     )
 
-    response.content.presence || "I couldn't analyze the file."
+    # Make sure it never returns nil
+    (result&.content || "I could not analyze that file.").to_s
   end
 end
