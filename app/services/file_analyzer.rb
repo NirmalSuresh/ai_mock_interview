@@ -1,53 +1,46 @@
 class FileAnalyzer
   def self.call(message)
     file = message.attachment
-    file_url = message.attachment_url
-    content_type = message.attachment_content_type
 
-    chat = RubyLLM.chat(model: "gpt-4o-mini")
+    # Download actual binary file data from ActiveStorage
+    file_data = file.download
+    filename = file.filename.to_s
+    content_type = file.content_type
 
+    # Build prompt depending on file type
     prompt = case content_type
     when /\Aimage\//
-      <<~PROMPT
-        Analyze this IMAGE from the user:
-        URL: #{file_url}
-
-        1. Describe what's in the image.
-        2. Extract any text (OCR).
-        3. Give brief interview-related feedback.
-      PROMPT
+      "You are an AI that analyzes an uploaded IMAGE. " \
+      "Describe the image, extract any visible text, and give brief interview-related insights."
 
     when /\Aaudio\//
-      <<~PROMPT
-        Analyze this AUDIO from the user:
-        URL: #{file_url}
-
-        1. Transcribe the audio.
-        2. Summarize it (1–2 sentences).
-        3. Give feedback related to interview communication.
-      PROMPT
+      "You are an AI that analyzes an uploaded AUDIO file. " \
+      "Transcribe it, summarize it, and provide communication-related interview feedback."
 
     when "application/pdf",
          "text/plain",
          "application/msword",
          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      <<~PROMPT
-        Analyze this DOCUMENT from the user:
-        URL: #{file_url}
-
-        1. Extract main text.
-        2. Summarize it.
-        3. Give short interview-relevant insights.
-      PROMPT
+      "You are an AI that analyzes a DOCUMENT uploaded by the user. " \
+      "Extract text, summarize it, and give interview-related insights."
 
     else
-      <<~PROMPT
-        This file type is #{content_type}.
-        Try to describe it if possible.
-      PROMPT
+      "Analyze this uploaded file (type: #{content_type}). Describe useful information."
     end
 
-    result = chat.ask(prompt)
-    result&.content || "I couldn't analyze that file."
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
+
+    response = chat.ask(
+      prompt,
+      files: [
+        {
+          name: filename,
+          mime_type: content_type,
+          data: file_data
+        }
+      ]
+    )
+
+    response.content.presence || "I couldn't analyze the file."
   end
 end
