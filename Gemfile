@@ -19,7 +19,8 @@ gem "pdf-reader"
 
 gem "cloudinary"
 
-gem "cloudinary-activestorage"
+gem "activestorage-cloudinary-service"
+
 
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
