@@ -2,6 +2,15 @@
   Interview for <%= @session.role %> — Question <%= @session.current_question_number %>/25
 </h1>
 
+<!-- TIMER BLOCK (Stimulus Controller) -->
+<div
+  data-controller="timer"
+  data-timer-seconds-value="<%= @session.time_left %>"
+  class="mb-3 text-lg font-semibold"
+>
+  Time Left: <span id="timer">--:--</span>
+</div>
+
 <!-- Messages container -->
 <div id="messages"
      data-controller="autoscroll"
