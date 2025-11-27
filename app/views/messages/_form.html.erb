@@ -1,4 +1,4 @@
-<%= simple_form_for [session, Message.new], html: { multipart: true }, remote: true do |f| %>
+<%= simple_form_for [session, Message.new], html: { multipart: true } do |f| %>
   <div class="d-flex gap-2 align-items-center">
 
     <%= f.input :content,
@@ -6,7 +6,6 @@
       placeholder: "Type your answer…",
       input_html: { class: "form-control" } %>
 
-    <!-- PDF input -->
     <%= f.input :file,
       as: :file,
       label: false,
