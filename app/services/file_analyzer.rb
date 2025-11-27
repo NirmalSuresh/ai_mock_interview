@@ -1,17 +1,21 @@
+require "open-uri"
 require "base64"
 
 class FileAnalyzer
   def self.call(message)
     blob = message.attachment.blob
-    file_path = ActiveStorage::Blob.service.send(:path_for, blob.key)
-    base64_file = Base64.strict_encode64(File.read(file_path))
+
+    # Generate signed URL for the blob (works with Cloudinary)
+    url = Rails.application.routes.url_helpers.rails_blob_url(blob, only_path: false)
+
+    # Download the file (ActiveStorage will proxy it)
+    file_data = URI.open(url).read
+    base64_file = Base64.strict_encode64(file_data)
 
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    prompt = base_prompt(message.attachment_content_type)
-
     result = chat.ask(
-      prompt: prompt,
+      prompt: prompt_for(blob.content_type),
       input: {
         file: {
           name: blob.filename.to_s,
@@ -21,24 +25,24 @@ class FileAnalyzer
       }
     )
 
-    result&.content || "I couldn't analyze this file."
+    result&.content || "I couldn't analyze the file."
   end
 
-  def self.base_prompt(content_type)
+  def self.prompt_for(content_type)
     if content_type.start_with?("image/")
       <<~PROMPT
-        You are analyzing an image file uploaded by the user.
-        1. Describe the image.
+        Analyze this image:
+        1. Describe it.
         2. Extract text (OCR).
-        3. Give interview-related feedback.
+        3. Give interview-related insights.
       PROMPT
 
     elsif content_type.start_with?("audio/")
       <<~PROMPT
-        You are analyzing an audio file uploaded by the user.
-        1. Transcribe.
+        Analyze this audio:
+        1. Transcribe it.
         2. Summarize.
-        3. Give interview communication feedback.
+        3. Give communication feedback.
       PROMPT
 
     elsif %w[
@@ -48,14 +52,14 @@ class FileAnalyzer
       text/plain
     ].include?(content_type)
       <<~PROMPT
-        You are analyzing a document uploaded by the user.
-        1. Extract the key text.
-        2. Summarize it in 3–4 lines.
-        3. Provide interview-related insights.
+        Analyze this document:
+        1. Extract important text.
+        2. Summarize briefly.
+        3. Give interview-related insights.
       PROMPT
 
     else
-      "Describe and analyze this file."
+      "Analyze this file."
     end
   end
 end
