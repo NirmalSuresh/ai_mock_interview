@@ -8,22 +8,28 @@
       <div data-controller="timer"
            data-timer-seconds-value="<%= @time_left_seconds %>"
            class="timer-pill">
-        <span id="timer">
-          ⏳ <%= Time.at(@time_left_seconds).utc.strftime("%M:%S") %>
-        </span>
+        <span id="timer">⏳ <%= Time.at(@time_left_seconds).utc.strftime("%M:%S") %></span>
       </div>
     </div>
 
-    <!-- Messages -->
-    <div data-controller="autoscroll">
-  <div id="messages" data-autoscroll-target="messages" class="messenger-chat p-4">
+    <!-- Messages (scrollable middle section) -->
+    <div class="messenger-chat p-4"
+         id="messages-wrapper"
+         data-controller="autoscroll"
+         data-autoscroll-target="messages">
 
-    <!-- Input -->
-  <div class="messenger-input shadow-sm"
-     id="message_form"
-     data-controller="message-form">
-  <%= render "messages/form", session: @session %>
-</div>
+      <div id="messages">
+        <%= render "messages/messages", messages: @messages %>
+      </div>
+
+    </div>
+
+    <!-- Input bar (fixed at bottom) -->
+    <div class="messenger-input shadow-sm"
+         id="message_form"
+         data-controller="message-form">
+      <%= render "messages/form", session: @session %>
+    </div>
 
   </div>
 </div>

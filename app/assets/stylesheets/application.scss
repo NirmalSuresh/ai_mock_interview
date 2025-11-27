@@ -27,12 +27,14 @@
 
 .messenger-box {
   max-width: 650px;
-  height: 85vh;
+  height: 80vh;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border-radius: 12px;
-  overflow: hidden;
+}
+
+.messenger-chat {
+  flex: 1;             /* Expand to fill available space */
+  overflow-y: auto;     /* Scroll only here */
 }
 
 .messenger-header {
