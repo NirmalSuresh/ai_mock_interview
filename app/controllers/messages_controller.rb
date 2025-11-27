@@ -3,17 +3,21 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    # --- END IF SESSION EXPIRED ---
+    # -------------------------------
+    # 1. END IF SESSION EXPIRED
+    # -------------------------------
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
     raw_input = params.dig(:message, :content).to_s
-    user_input = raw_input.strip
+    user_input = raw_input.strip.downcase
 
-    # --- MANUAL “end” COMMAND ---
-    if user_input.downcase.start_with?("end")
+    # -------------------------------
+    # 2. MANUAL "end" COMMAND
+    # -------------------------------
+    if user_input.start_with?("end")
       @session.update!(status: "completed")
 
       respond_to do |format|
@@ -26,43 +30,51 @@ class MessagesController < ApplicationController
           )
         end
       end
+
       return
     end
 
-    # --- SAVE USER MESSAGE ---
+    # -------------------------------
+    # 3. SAVE USER MESSAGE (TEXT/FILE)
+    # -------------------------------
     @message = @session.messages.create!(
       role: "user",
       content: raw_input.presence,
       attachment: message_params[:attachment]
     )
 
-    # =========================================================
-    #              FILE ATTACHED (PDF/IMAGE/AUDIO)
-    # =========================================================
+    # -------------------------------
+    # 4. FILE ATTACHED → RUN GROQ FILE ANALYZER
+    # -------------------------------
     if @message.attachment.attached?
-      # Convert Cloudinary blob → local tmp file → RubyLLM "with" hash
-      with_payload = FileAnalyzer.call(@message.attachment.blob)
-
-      ruby_llm = RubyLLM.chat(model: "gpt-4o-mini")
-
-      prompt = "Analyze the uploaded file and give short, clear interview-related feedback."
-
-      response = ruby_llm.ask(prompt, with: with_payload)
+      ai_text = FileAnalyzer.call(@message)
 
       @assistant_msg = @session.messages.create!(
         role: "assistant",
-        content: response&.content || "I couldn't analyze that file."
+        content: ai_text
       )
 
+      # After file analysis → auto-move to next question
+      ask_next_question
       return respond_ok
     end
 
-    # =========================================================
-    #                NORMAL INTERVIEW QUESTION FLOW
-    # =========================================================
+    # -------------------------------
+    # 5. NORMAL TEXT MESSAGE → GO TO NEXT QUESTION
+    # -------------------------------
+    ask_next_question
+    respond_ok
+  end
+
+  private
+
+  # ------------------------------------
+  # AUTO-GENERATE THE NEXT QUESTION
+  # ------------------------------------
+  def ask_next_question
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
-      return redirect_to final_report_assistant_session_path(@session)
+      return
     end
 
     next_q = @session.current_question_number + 1
@@ -71,31 +83,28 @@ class MessagesController < ApplicationController
       "#{m.role.capitalize}: #{m.content}"
     end.join("\n")
 
-    ruby_llm = RubyLLM.chat(model: "gpt-4o-mini")
+    client = Groq::Client.new(api_key: ENV["GROQ_API_KEY"])
 
-    ai_response = ruby_llm.ask(<<~PROMPT)
-      #{SystemPrompt.text}
-
-      Role: #{@session.role}
-
-      Recent conversation:
-      #{history}
-
-      Ask interview question number #{next_q}.
-    PROMPT
+    ai = client.chat.completions.create(
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        { role: "system", content: SystemPrompt.text },
+        { role: "user", content: "Role: #{@session.role}\n\nRecent Conversation:\n#{history}" },
+        { role: "user", content: "Ask interview question number #{next_q}." }
+      ]
+    )
 
     @assistant_msg = @session.messages.create!(
       role: "assistant",
-      content: ai_response.content.presence || "Please repeat your answer."
+      content: ai.choices[0].message.content
     )
 
     @session.update!(current_question_number: next_q)
-
-    respond_ok
   end
 
-  private
-
+  # ------------------------------------
+  # RESPONSES
+  # ------------------------------------
   def respond_ok
     respond_to do |format|
       format.turbo_stream
@@ -103,6 +112,9 @@ class MessagesController < ApplicationController
     end
   end
 
+  # ------------------------------------
+  # HELPERS
+  # ------------------------------------
   def set_session
     @session = current_user.assistant_sessions.find(params[:assistant_session_id])
   end

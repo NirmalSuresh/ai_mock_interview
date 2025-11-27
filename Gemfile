@@ -11,6 +11,8 @@ gem "sprockets-rails"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
 
+gem "groq"
+
 gem "devise"
 
 gem "ruby_llm", "~> 1.7"
