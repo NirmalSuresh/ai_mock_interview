@@ -3,22 +3,23 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    # ❗ End interview if time expired
+    # End if session expired
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
     raw_input = params.dig(:message, :content).to_s
-    user_input = raw_input.strip.downcase
+    user_input = raw_input.strip
 
-    # ❗ Detect "end" BEFORE saving user message
-    if user_input.start_with?("end")
+    # -----------------------------------------
+    # DETECT MANUAL END
+    # -----------------------------------------
+    if user_input.downcase.start_with?("end")
       @session.update!(status: "completed")
 
       respond_to do |format|
         format.html { redirect_to final_report_assistant_session_path(@session) }
-
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "messages",
@@ -32,24 +33,36 @@ class MessagesController < ApplicationController
     end
 
     # -----------------------------------------
-    # ⭐ Save user message
+    # SAVE USER MESSAGE (TEXT + FILE)
     # -----------------------------------------
     @message = @session.messages.create!(
       role: "user",
-      content: raw_input
+      content: raw_input.presence,
+      attachment: message_params[:attachment]
     )
 
     # -----------------------------------------
-    # ⭐ If last question reached
+    # FILE ATTACHMENT → ANALYZE FILE
+    # -----------------------------------------
+    if @message.attachment.attached?
+      ai_text = FileAnalyzer.call(@message)
+
+      @assistant_msg = @session.messages.create!(
+        role: "assistant",
+        content: ai_text
+      )
+
+      return respond_ok
+    end
+
+    # -----------------------------------------
+    # NORMAL INTERVIEW FLOW
     # -----------------------------------------
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # -----------------------------------------
-    # ⭐ Prepare next question
-    # -----------------------------------------
     next_q = @session.current_question_number + 1
 
     history = @session.messages.order(:created_at).last(10)
@@ -69,38 +82,30 @@ class MessagesController < ApplicationController
       Ask interview question number #{next_q}.
     PROMPT
 
-    # -----------------------------------------
-    # ⭐ Handle if LLM fails or returns nil
-    # -----------------------------------------
-    if ai_response.present? && ai_response.content.present?
-      @assistant_msg = @session.messages.create!(
-        role: "assistant",
-        content: ai_response.content
-      )
-    else
-      @assistant_msg = @session.messages.create!(
-        role: "assistant",
-        content: "I’m sorry, I didn’t get that properly. Please answer again."
-      )
-    end
+    @assistant_msg = @session.messages.create!(
+      role: "assistant",
+      content: ai_response.content.presence || "Please repeat your answer."
+    )
 
-    # -----------------------------------------
-    # ⭐ Update session progress
-    # -----------------------------------------
     @session.update!(current_question_number: next_q)
 
-    # -----------------------------------------
-    # ⭐ Respond with Turbo
-    # -----------------------------------------
+    respond_ok
+  end
+
+  private
+
+  def respond_ok
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to assistant_session_path(@session) }
     end
   end
 
-  private
-
   def set_session
     @session = current_user.assistant_sessions.find(params[:assistant_session_id])
+  end
+
+  def message_params
+    params.require(:message).permit(:content, :attachment)
   end
 end

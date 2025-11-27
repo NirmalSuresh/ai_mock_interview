@@ -1,6 +1,8 @@
+<turbo-stream action="redirect" url="<%= final_report_assistant_session_path(session) %>"></turbo-stream>
+
 <div class="p-4 text-center text-lg font-semibold">
   Ending interview...
-  <script>
-    window.location.href = "<%= final_report_assistant_session_path(session) %>";
-  </script>
+  <div class="spinner-border text-primary mt-2" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
 </div>

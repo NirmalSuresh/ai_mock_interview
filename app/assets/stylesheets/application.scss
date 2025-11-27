@@ -10,3 +10,17 @@
 // Your CSS partials
 @import "components/index";
 @import "pages/index";
+
+.message.user {
+  background: #e7f3ff;
+  border-radius: 8px;
+}
+
+.message.assistant {
+  background: #f3f3f3;
+  border-radius: 8px;
+}
+
+.message {
+  padding: 10px;
+}

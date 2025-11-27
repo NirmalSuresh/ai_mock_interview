@@ -1,13 +1,14 @@
-<%= form_with model: [session, Message.new],
-              data: { turbo_stream: true } do |f| %>
+<%= form_with model: [session, Message.new], data: { turbo_stream: true }, html: { multipart: true } do |f| %>
 
-  <%= f.text_field :content,
-      id: "message_content",
-      class: "w-full border p-2 rounded mb-2",
-      placeholder: "Type your answer…",
-      autofocus: true %>
+  <div class="mb-2">
+    <%= f.text_field :content, placeholder: "Type your message (optional)...", class: "form-control w-100" %>
+  </div>
 
-  <%= f.submit "Send",
-      class: "bg-blue-500 text-white px-4 py-2 rounded" %>
+  <div class="mb-2">
+    <%= f.file_field :attachment, class: "form-control" %>
+    <small class="text-muted">You may upload an image, audio, or document (max 5MB).</small>
+  </div>
+
+  <%= f.submit "Send", class: "btn btn-primary w-100" %>
 
 <% end %>

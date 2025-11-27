@@ -1,6 +1,28 @@
-<div class="<%= message.role == 'user' ? 'text-end' : 'text-start' %>">
-  <div class="d-inline-block px-3 py-2 mb-2 rounded
-              <%= message.role == 'user' ? 'bg-primary text-white' : 'bg-light text-dark' %>">
-    <%= message.content %>
-  </div>
+<div class="message mb-3 p-2 <%= message.role %>">
+
+  <strong><%= message.role.capitalize %></strong>
+
+  <% if message.attachment.attached? %>
+    <div class="mt-2">
+
+      <% if message.image? %>
+        <%= image_tag message.attachment, style: "max-width: 250px; border-radius: 6px;" %>
+
+      <% elsif message.audio? %>
+        <%= audio_tag message.attachment_url, controls: true %>
+
+      <% elsif message.pdf? %>
+        <%= link_to "View PDF", message.attachment_url, target: "_blank" %>
+
+      <% else %>
+        <%= link_to message.attachment.filename, message.attachment_url, target: "_blank" %>
+      <% end %>
+
+    </div>
+  <% end %>
+
+  <% if message.content.present? %>
+    <p class="mt-2"><%= simple_format(message.content) %></p>
+  <% end %>
+
 </div>
