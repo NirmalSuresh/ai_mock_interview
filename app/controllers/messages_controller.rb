@@ -3,104 +3,81 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    raw = params.dig(:message, :content).to_s.strip
-
-    # User typed "end"
-    if raw.downcase == "end"
+    if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # Create message
+    raw = params.dig(:message, :content).to_s.strip
+
+    # END command
+    if raw.downcase.start_with?("end")
+      @session.update!(status: "completed")
+      return redirect_to final_report_assistant_session_path(@session)
+    end
+
+    # Save user message
     @message = @session.messages.create!(
       role: "user",
       content: raw.presence,
       attachment: message_params[:attachment]
     )
 
+    # File uploaded → analyze + continue
     if @message.attachment.attached?
-      reply = analyze_file(@message)
-      @session.messages.create!(role: "assistant", content: reply)
+      ai_text = FileAnalyzer.call(@message)
+
+      @session.messages.create!(
+        role: "assistant",
+        content: ai_text
+      )
+
       ask_next_question
       return respond_ok
     end
 
+    # Normal text → next Q
     ask_next_question
     respond_ok
   end
 
   private
 
-  ######################################################
-  # FILE ANALYZER (RubyLLM only — works for ANY file)
-  ######################################################
-  def analyze_file(message)
-    file = message.attachment
-
-    client = RubyLLM::Client.new
-
-    prompt = <<~TEXT
-      You are a professional interview assistant.
-
-      The candidate uploaded a file.
-      URL: #{file.url}
-
-      Please:
-      - Extract text/content
-      - Summarize
-      - Give insights relevant to job interviews
-    TEXT
-
-    begin
-      resp = client.chat(
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "user", content: prompt }
-        ]
-      )
-
-      return resp["content"]
-
-    rescue => e
-      return "Error analyzing file: #{e.message}"
-    end
-  end
-
-  ######################################################
-  # GENERATE NEXT QUESTION (Stable, no errors)
-  ######################################################
   def ask_next_question
-    # Stop at 25
-    if @session.current_question_number >= 25
-      @session.update!(status: "completed")
-      return
-    end
+    return finish_session if @session.current_question_number >= 25
 
     next_q = @session.current_question_number + 1
 
-    history = @session.messages.last(12).map do |m|
-      "#{m.role}: #{m.content}"
+    history = @session.messages.order(:created_at).last(10).map do |m|
+      "#{m.role.capitalize}: #{m.content}"
     end.join("\n")
 
-    client = RubyLLM::Client.new
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    ai = client.chat(
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: SystemPrompt.text },
-        { role: "user", content: "Role: #{@session.role}" },
-        { role: "user", content: "Conversation:\n#{history}" },
-        { role: "user", content: "Ask interview question number #{next_q}." }
-      ]
+    ai = chat.ask(<<~MSG)
+      #{SystemPrompt.text}
+
+      Role: #{@session.role}
+
+      Conversation History:
+      #{history}
+
+      Ask interview question number #{next_q}.
+    MSG
+
+    @session.messages.create!(
+      role: "assistant",
+      content: ai.content.presence || "Please repeat your answer."
     )
 
-    @session.messages.create!(role: "assistant", content: ai["content"])
     @session.update!(current_question_number: next_q)
   end
 
-  ######################################################
-  # Helpers
-  ######################################################
+  def finish_session
+    @session.update!(status: "completed")
+    redirect_to final_report_assistant_session_path(@session)
+  end
+
   def respond_ok
     respond_to do |format|
       format.turbo_stream
