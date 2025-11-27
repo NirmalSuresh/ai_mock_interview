@@ -1,21 +1,13 @@
-<%= turbo_stream.append "messages", partial: "messages/message", locals: { message: @message } %>
+<%= turbo_stream.append "messages",
+      partial: "messages/message",
+      locals: { message: @message } %>
 
 <% if @assistant_msg %>
-  <%= turbo_stream.append "messages", partial: "messages/message", locals: { message: @assistant_msg } %>
+  <%= turbo_stream.append "messages",
+        partial: "messages/message",
+        locals: { message: @assistant_msg } %>
 <% end %>
 
-<% if defined?(@error) && @error.present? %>
-  <%= turbo_stream.append "messages" do %>
-    <div class="message assistant text-danger p-2 mb-2">
-      <strong>Assistant</strong>
-      <p class="mb-0"><%= @error %></p>
-    </div>
-  <% end %>
-<% end %>
-
-<%= turbo_stream.update "message_form", partial: "messages/form", locals: { session: @session } %>
-
-<%# Optional sentinel to make sure autoscroll controllers see a DOM change at the bottom %>
-<%= turbo_stream.append "messages" do %>
-  <div id="messages-sentinel" style="height:0;line-height:0;"></div>
-<% end %>
+<%= turbo_stream.update "message_form",
+      partial: "messages/form",
+      locals: { session: @session } %>

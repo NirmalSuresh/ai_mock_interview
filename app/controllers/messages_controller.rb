@@ -3,7 +3,7 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    # End if session expired
+    # --- END IF SESSION EXPIRED ---
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -12,14 +12,13 @@ class MessagesController < ApplicationController
     raw_input = params.dig(:message, :content).to_s
     user_input = raw_input.strip
 
-    # -----------------------------------------
-    # DETECT MANUAL END
-    # -----------------------------------------
+    # --- DETECT “end” COMMAND ---
     if user_input.downcase.start_with?("end")
       @session.update!(status: "completed")
 
       respond_to do |format|
         format.html { redirect_to final_report_assistant_session_path(@session) }
+
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "messages",
@@ -32,18 +31,14 @@ class MessagesController < ApplicationController
       return
     end
 
-    # -----------------------------------------
-    # SAVE USER MESSAGE (TEXT + FILE)
-    # -----------------------------------------
+    # --- SAVE MESSAGE (TEXT + OPTIONAL FILE) ---
     @message = @session.messages.create!(
       role: "user",
       content: raw_input.presence,
       attachment: message_params[:attachment]
     )
 
-    # -----------------------------------------
-    # FILE ATTACHMENT → ANALYZE FILE
-    # -----------------------------------------
+    # --- IF FILE ATTACHED → ANALYZE AND REPLY ---
     if @message.attachment.attached?
       ai_text = FileAnalyzer.call(@message)
 
@@ -55,9 +50,7 @@ class MessagesController < ApplicationController
       return respond_ok
     end
 
-    # -----------------------------------------
-    # NORMAL INTERVIEW FLOW
-    # -----------------------------------------
+    # --- NORMAL INTERVIEW FLOW ---
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -65,9 +58,9 @@ class MessagesController < ApplicationController
 
     next_q = @session.current_question_number + 1
 
-    history = @session.messages.order(:created_at).last(10)
-               .map { |m| "#{m.role.capitalize}: #{m.content}" }
-               .join("\n")
+    history = @session.messages.order(:created_at).last(10).map { |m|
+      "#{m.role.capitalize}: #{m.content}"
+    }.join("\n")
 
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
