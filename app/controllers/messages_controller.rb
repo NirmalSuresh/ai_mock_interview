@@ -1,11 +1,11 @@
-require "open-uri"
+require "rubyllm"
 
 class MessagesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_session
 
   def create
-    # END interview if time is up
+    # If time expired → finish interview
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -13,14 +13,15 @@ class MessagesController < ApplicationController
 
     @message = @session.messages.new(message_params)
 
-    # Detect END typed by user
     raw_input = @message.content.to_s.strip.downcase
+
+    # END early
     if raw_input.start_with?("end")
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # ---------- PDF FLOW ----------
+    # PDF upload flow
     if @message.file.attached?
       @message.save!
 
@@ -34,9 +35,10 @@ class MessagesController < ApplicationController
       return respond_with_turbo
     end
 
-    # ---------- NORMAL TEXT FLOW ----------
+    # Normal text message flow
     @message.save!
 
+    # If last question
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -73,32 +75,44 @@ class MessagesController < ApplicationController
 
   private
 
-  # NEW — WORKING PDF EXTRACTION (NO PDF::READER)
+  ###########################################################
+  #  FIXED PDF HANDLER – WORKS WITH ALL RUBYLLM VERSIONS
+  ###########################################################
   def handle_pdf(file)
     pdf_data = file.download
 
-    chat = RubyLLM.chat(model: "gpt-4o-mini")
+    client = RubyLLM::Client.new(model: "gpt-4o-mini")
 
-    response = chat.ask(
-      <<~PROMPT,
-        You are a professional assistant.
-
-        The user uploaded a PDF. Extract all readable text using OCR,
-        understand the meaning, and generate a clear, structured summary.
-      PROMPT
-      files: [
+    response = client.chat(
+      messages: [
         {
-          name: "document.pdf",
+          role: "system",
+          content: "You are an AI assistant. Extract and summarize the content of the uploaded PDF. Use OCR if needed."
+        },
+        {
+          role: "user",
+          content: "Summarize the following PDF."
+        }
+      ],
+      input: [
+        {
+          type: "input_text",
+          text: "PDF uploaded by the user."
+        },
+        {
+          type: "input_file",
           mime_type: "application/pdf",
           data: pdf_data
         }
       ]
     )
 
-    response.content
+    response["output_text"]
   end
 
-  # TurboStream response
+  ###########################################################
+  # Helpers
+  ###########################################################
   def respond_with_turbo
     respond_to do |format|
       format.turbo_stream
@@ -112,5 +126,6 @@ class MessagesController < ApplicationController
 
   def set_session
     @session = current_user.assistant_sessions.find(params[:assistant_session_id])
+    @messages = @session.messages.order(:created_at)
   end
 end
