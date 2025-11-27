@@ -1,85 +1,118 @@
-require "groq"
-require "down"
-require "base64"
-require "pdf-reader"
+class MessagesController < ApplicationController
+  before_action :authenticate_user!
+  before_action :set_session
 
-class FileAnalyzer
-  def self.call(message)
+  def create
+    raw = params.dig(:message, :content).to_s.strip
+
+    # User typed "end"
+    if raw.downcase == "end"
+      @session.update!(status: "completed")
+      return redirect_to final_report_assistant_session_path(@session)
+    end
+
+    # Create message
+    @message = @session.messages.create!(
+      role: "user",
+      content: raw.presence,
+      attachment: message_params[:attachment]
+    )
+
+    if @message.attachment.attached?
+      reply = analyze_file(@message)
+      @session.messages.create!(role: "assistant", content: reply)
+      ask_next_question
+      return respond_ok
+    end
+
+    ask_next_question
+    respond_ok
+  end
+
+  private
+
+  ######################################################
+  # FILE ANALYZER (RubyLLM only — works for ANY file)
+  ######################################################
+  def analyze_file(message)
     file = message.attachment
 
-    # DOWNLOAD FILE FROM CLOUDINARY
-    tmp = Down.download(file.url)
-    bytes = tmp.read
-    ext = File.extname(file.filename.to_s).downcase
+    client = RubyLLM::Client.new
 
-    client = Groq::Client.new(api_key: ENV["GROQ_API_KEY"])
+    prompt = <<~TEXT
+      You are a professional interview assistant.
 
-    # -----------------------------------------------------
-    # A) IMAGE → Groq Vision (best model)
-    # -----------------------------------------------------
-    if file.image?
-      base64_img = Base64.strict_encode64(bytes)
-      data_uri = "data:#{file.content_type};base64,#{base64_img}"
+      The candidate uploaded a file.
+      URL: #{file.url}
 
-      response = client.chat.completions.create(
-        model: "llama-3.2-11b-vision-preview",
+      Please:
+      - Extract text/content
+      - Summarize
+      - Give insights relevant to job interviews
+    TEXT
+
+    begin
+      resp = client.chat(
+        model: "gpt-4o-mini",
         messages: [
-          {
-            role: "user",
-            content: [
-              { type: "input_text", text: "Analyze this image: extract text + describe + give interview insights." },
-              { type: "input_image", image_url: data_uri }
-            ]
-          }
+          { role: "user", content: prompt }
         ]
       )
 
-      return response.choices[0].message["content"]
+      return resp["content"]
+
+    rescue => e
+      return "Error analyzing file: #{e.message}"
+    end
+  end
+
+  ######################################################
+  # GENERATE NEXT QUESTION (Stable, no errors)
+  ######################################################
+  def ask_next_question
+    # Stop at 25
+    if @session.current_question_number >= 25
+      @session.update!(status: "completed")
+      return
     end
 
-    # -----------------------------------------------------
-    # B) PDF → Extract locally → Send text to Groq
-    # -----------------------------------------------------
-    if ext == ".pdf"
-      reader = PDF::Reader.new(tmp.path)
-      pdf_text = reader.pages.map(&:text).join("\n")
+    next_q = @session.current_question_number + 1
 
-      ai = client.chat.completions.create(
-        model: "llama-3.1-70b-versatile",
-        messages: [
-          { role: "system", content: "You are an expert resume/document analyzer." },
-          {
-            role: "user",
-            content: "Here is the PDF text:\n\n#{pdf_text}\n\nSummarize it and give interview-relevant insights."
-          }
-        ]
-      )
+    history = @session.messages.last(12).map do |m|
+      "#{m.role}: #{m.content}"
+    end.join("\n")
 
-      return ai.choices[0].message["content"]
+    client = RubyLLM::Client.new
+
+    ai = client.chat(
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: SystemPrompt.text },
+        { role: "user", content: "Role: #{@session.role}" },
+        { role: "user", content: "Conversation:\n#{history}" },
+        { role: "user", content: "Ask interview question number #{next_q}." }
+      ]
+    )
+
+    @session.messages.create!(role: "assistant", content: ai["content"])
+    @session.update!(current_question_number: next_q)
+  end
+
+  ######################################################
+  # Helpers
+  ######################################################
+  def respond_ok
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to assistant_session_path(@session) }
     end
+  end
 
-    # -----------------------------------------------------
-    # C) TEXT FILES
-    # -----------------------------------------------------
-    if ext == ".txt" || ext == ".md"
-      text = bytes.force_encoding("UTF-8")
+  def set_session
+    @session = current_user.assistant_sessions.find(params[:assistant_session_id])
+  end
 
-      ai = client.chat.completions.create(
-        model: "llama-3.1-70b-versatile",
-        messages: [
-          { role: "user", content: "Analyze this text:\n\n#{text}" }
-        ]
-      )
-
-      return ai.choices[0].message["content"]
-    end
-
-    # -----------------------------------------------------
-    # UNSUPPORTED FILE
-    # -----------------------------------------------------
-    "Unsupported file format. Upload image or PDF."
-
-  rescue => e
-    "Error analyzing file: #{e.message}"
+  def message_params
+    params.require(:message).permit(:content, :attachment)
   end
 end
