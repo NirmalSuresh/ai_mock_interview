@@ -1,11 +1,11 @@
-require "pdf/reader"
-require "stringio"
+require "open-uri"
 
 class MessagesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_session
 
   def create
+    # END interview if time is up
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -13,20 +13,20 @@ class MessagesController < ApplicationController
 
     @message = @session.messages.new(message_params)
 
-    # Detect "end"
-    if @message.content.to_s.strip.downcase.start_with?("end")
+    # Detect END typed by user
+    raw_input = @message.content.to_s.strip.downcase
+    if raw_input.start_with?("end")
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # SAVE EARLY so attachment exists
-    @message.save!
-
-    # 🔥 CORRECT PDF CHECK
+    # ---------- PDF FLOW ----------
     if @message.file.attached?
+      @message.save!
+
       ai_summary = handle_pdf(@message.file)
 
-      @session.messages.create!(
+      @assistant_msg = @session.messages.create!(
         role: "assistant",
         content: ai_summary
       )
@@ -34,7 +34,9 @@ class MessagesController < ApplicationController
       return respond_with_turbo
     end
 
-    # Normal text flow
+    # ---------- NORMAL TEXT FLOW ----------
+    @message.save!
+
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -59,7 +61,7 @@ class MessagesController < ApplicationController
       Ask interview question number #{next_question_number}.
     PROMPT
 
-    @session.messages.create!(
+    @assistant_msg = @session.messages.create!(
       role: "assistant",
       content: ai_response.content
     )
@@ -71,32 +73,32 @@ class MessagesController < ApplicationController
 
   private
 
+  # NEW — WORKING PDF EXTRACTION (NO PDF::READER)
   def handle_pdf(file)
-    text = extract_pdf_text(file)
+    pdf_data = file.download
 
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    response = chat.ask(<<~PROMPT)
-      Summarize the uploaded PDF in clear bullet points.
+    response = chat.ask(
+      <<~PROMPT,
+        You are a professional assistant.
 
-      PDF CONTENT:
-      #{text}
-    PROMPT
+        The user uploaded a PDF. Extract all readable text using OCR,
+        understand the meaning, and generate a clear, structured summary.
+      PROMPT
+      files: [
+        {
+          name: "document.pdf",
+          mime_type: "application/pdf",
+          data: pdf_data
+        }
+      ]
+    )
 
     response.content
   end
 
-  def extract_pdf_text(file)
-    data = file.download   # raw bytes from Cloudinary
-    io = StringIO.new(data)
-
-    reader = PDF::Reader.new(io)
-    reader.pages.map(&:text).join("\n")
-
-  rescue => e
-    "PDF extraction error: #{e.message}"
-  end
-
+  # TurboStream response
   def respond_with_turbo
     respond_to do |format|
       format.turbo_stream
