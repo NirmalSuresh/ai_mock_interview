@@ -2,10 +2,8 @@
   <%= render @message %>
 <% end %>
 
-<% if @assistant_msg.present? %>
-  <%= turbo_stream.append "messages" do %>
-    <%= render @assistant_msg %>
-  <% end %>
+<%= turbo_stream.append "messages" do %>
+  <%= render @assistant_msg %>
 <% end %>
 
 <%= turbo_stream.replace "message_content" do %>

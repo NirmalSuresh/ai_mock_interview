@@ -1,6 +1,5 @@
-<div class="<%= message.role == 'user' ? 'text-end' : 'text-start' %>">
-  <div class="d-inline-block px-3 py-2 mb-2 rounded
-              <%= message.role == 'user' ? 'bg-primary text-white' : 'bg-light text-dark' %>">
-    <%= message.content %>
+<div class="<%= message.sender == 'user' ? 'text-end' : 'text-start' %>">
+  <div class="p-2 rounded mb-2 <%= message.sender == 'user' ? 'bg-primary text-white' : 'bg-light' %>">
+    <%= simple_format(message.content) %>
   </div>
 </div>

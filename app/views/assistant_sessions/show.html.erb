@@ -2,21 +2,8 @@
   Interview for <%= @session.role %> — Question <%= @session.current_question_number %>/25
 </h1>
 
-<!-- TIMER DISPLAY (Stimulus Timer) -->
-<div data-controller="timer"
-     data-timer-seconds-value="<%= @time_left_seconds %>"
-     class="mb-3 text-lg font-semibold">
-  Time Left: <span id="timer">--:--</span>
+<div id="messages" class="space-y-3 max-h-[70vh] overflow-y-auto p-2 border rounded">
+  <%= render @messages %>
 </div>
 
-<!-- MESSAGES LIST -->
-<div id="messages"
-     data-controller="autoscroll"
-     class="space-y-3 max-h-[70vh] overflow-y-auto p-2 border rounded">
-
-  <%= render @session.messages %>
-
-</div>
-
-<!-- MESSAGE FORM -->
 <%= render "messages/form", session: @session %>

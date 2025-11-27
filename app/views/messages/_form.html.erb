@@ -1,13 +1,10 @@
-<%= simple_form_for [session, Message.new],
-      html: { multipart: true },
-      remote: true do |f| %>
-
+<%= simple_form_for [session, Message.new], html: { multipart: true }, remote: true do |f| %>
   <div class="d-flex gap-2 align-items-center">
 
     <%= f.input :content,
       label: false,
       placeholder: "Type your answer…",
-      input_html: { id: "message_content", class: "form-control" } %>
+      input_html: { class: "form-control", id: "message_content" } %>
 
     <%= f.input :file,
       as: :file,
@@ -15,7 +12,5 @@
       input_html: { accept: "application/pdf" } %>
 
     <%= f.button :submit, "Send", class: "btn btn-primary" %>
-
   </div>
-
 <% end %>

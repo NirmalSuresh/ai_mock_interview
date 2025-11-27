@@ -1,115 +1,85 @@
-require "ruby_llm"
-require "pdf-reader"
-
 class MessagesController < ApplicationController
-  before_action :authenticate_user!
   before_action :set_session
 
   def create
-    # End interview when time expired
-    if @session.expired?
-      @session.update!(status: "completed")
-      return redirect_to final_report_assistant_session_path(@session)
-    end
+    @message = @session.messages.create!(message_params.merge(sender: "user"))
 
-    @message = @session.messages.new(message_params)
-
-    raw_input = @message.content.to_s.strip.downcase
-
-    # Detect "end"
-    if raw_input.start_with?("end")
-      @session.update!(status: "completed")
-      return redirect_to final_report_assistant_session_path(@session)
-    end
-
-    # If PDF uploaded
-    if @message.file.attached?
-      @message.save!
-
-      ai_summary = handle_pdf(@message.file)
-
+    if params[:message][:file].present?
       @assistant_msg = @session.messages.create!(
-        role: "assistant",
-        content: ai_summary
+        sender: "assistant",
+        content: handle_pdf(@message.file)
       )
-
-      return respond_with_turbo
+    else
+      @assistant_msg = @session.messages.create!(
+        sender: "assistant",
+        content: handle_text(@message.content)
+      )
     end
 
-    # Normal text answer
-    @message.save!
+    @session.update(current_question_number: @session.current_question_number + 1)
 
-    # If last question
-    if @session.current_question_number >= 25
-      @session.update!(status: "completed")
-      return redirect_to final_report_assistant_session_path(@session)
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to @session }
     end
-
-    next_question = @session.current_question_number + 1
-
-    history = @session.messages.order(:created_at).last(10)
-      .map { |m| "#{m.role.capitalize}: #{m.content}" }
-      .join("\n")
-
-    chat = RubyLLM.chat(model: "gpt-4o-mini")
-
-    ai_response = chat.ask(<<~PROMPT)
-      #{SystemPrompt.text}
-
-      Role: #{@session.role}
-
-      Recent conversation:
-      #{history}
-
-      Ask interview question number #{next_question}.
-    PROMPT
-
-    @assistant_msg = @session.messages.create!(
-      role: "assistant",
-      content: ai_response.content
-    )
-
-    @session.update!(current_question_number: next_question)
-
-    respond_with_turbo
   end
 
   private
 
-  def handle_pdf(file)
-    text = extract_pdf_text(file)
-
-    chat = RubyLLM.chat(model: "gpt-4o-mini")
-
-    response = chat.ask(<<~PROMPT)
-      A PDF was uploaded. Extract meaning and summarize it clearly.
-
-      PDF Content:
-      #{text}
-
-      Provide a structured summary.
-    PROMPT
-
-    response.content
-  end
-
-  def extract_pdf_text(file)
-    reader = PDF::Reader.new(StringIO.new(file.download))
-    reader.pages.map(&:text).join("\n")
-  end
-
-  def respond_with_turbo
-    respond_to do |format|
-      format.turbo_stream
-      format.html { redirect_to assistant_session_path(@session) }
-    end
+  def set_session
+    @session = AssistantSession.find(params[:assistant_session_id])
   end
 
   def message_params
     params.require(:message).permit(:content, :file)
   end
 
-  def set_session
-    @session = current_user.assistant_sessions.find(params[:assistant_session_id])
+  # -----------------------------
+  # TEXT HANDLER
+  # -----------------------------
+  def handle_text(text)
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
+
+    response = chat.ask(<<~PROMPT)
+      You are a mock interview assistant.
+      The user answered:
+
+      "#{text}"
+
+      Give a helpful, short response.
+    PROMPT
+
+    response.content
+  end
+
+  # -----------------------------
+  # PDF HANDLER
+  # -----------------------------
+  def handle_pdf(file)
+    pdf_text = extract_pdf_text(file)
+
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
+
+    response = chat.ask(<<~PROMPT)
+      The user uploaded a PDF resume. Analyze and summarize the key information.
+
+      PDF CONTENT:
+      #{pdf_text}
+    PROMPT
+
+    response.content
+  end
+
+  # -----------------------------
+  # PDF EXTRACTION
+  # -----------------------------
+  def extract_pdf_text(file)
+    # Download bytes from ActiveStorage → wrap in IO
+    io = StringIO.new(file.download)
+
+    reader = PDF::Reader.new(io)
+    reader.pages.map(&:text).join("\n")
+  rescue => e
+    "PDF extraction failed: #{e.message}"
   end
 end
