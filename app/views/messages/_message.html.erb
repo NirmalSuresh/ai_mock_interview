@@ -1,5 +1,9 @@
 <div class="<%= message.sender == 'user' ? 'text-end' : 'text-start' %>">
-  <div class="p-2 rounded mb-2 <%= message.sender == 'user' ? 'bg-primary text-white' : 'bg-light' %>">
-    <%= simple_format(message.content) %>
+  <div class="d-inline-block p-2 rounded mb-2 <%= message.sender == 'user' ? 'bg-primary text-white' : 'bg-light' %>">
+    <% if message.file.attached? %>
+      <p><strong>📄 PDF Uploaded</strong></p>
+    <% end %>
+
+    <%= simple_format(message.content.presence || "") %>
   </div>
 </div>

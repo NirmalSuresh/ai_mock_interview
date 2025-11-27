@@ -1,22 +1,29 @@
 class MessagesController < ApplicationController
+  before_action :authenticate_user!
   before_action :set_session
 
   def create
-    @message = @session.messages.create!(message_params.merge(sender: "user"))
+    @message = @session.messages.create!(
+      message_params.merge(sender: "user")
+    )
 
-    if params[:message][:file].present?
+    # If PDF is attached → process PDF
+    if @message.file.attached?
       @assistant_msg = @session.messages.create!(
         sender: "assistant",
-        content: handle_pdf(@message.file)
+        content: process_pdf(@message.file)
       )
     else
       @assistant_msg = @session.messages.create!(
         sender: "assistant",
-        content: handle_text(@message.content)
+        content: process_answer(@message.content)
       )
     end
 
-    @session.update(current_question_number: @session.current_question_number + 1)
+    # Increase question counter
+    @session.update!(
+      current_question_number: @session.current_question_number + 1
+    )
 
     respond_to do |format|
       format.turbo_stream
@@ -34,52 +41,63 @@ class MessagesController < ApplicationController
     params.require(:message).permit(:content, :file)
   end
 
-  # -----------------------------
+  # ======================================
   # TEXT HANDLER
-  # -----------------------------
-  def handle_text(text)
+  # ======================================
+  def process_answer(text)
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
     response = chat.ask(<<~PROMPT)
       You are a mock interview assistant.
-      The user answered:
+      The candidate answered:
 
       "#{text}"
 
-      Give a helpful, short response.
+      Give a brief and helpful professional follow-up message.
     PROMPT
 
     response.content
   end
 
-  # -----------------------------
-  # PDF HANDLER
-  # -----------------------------
-  def handle_pdf(file)
-    pdf_text = extract_pdf_text(file)
+  # ======================================
+  # PDF HANDLER (OCR + Summary)
+  # ======================================
+  def process_pdf(file)
+    # Step 1: Get local temp path from ActiveStorage
+    pdf_path = ActiveStorage::Blob.service.send(:path_for, file.blob.key)
 
+    # Step 2: Cloudinary OCR
+    result = Cloudinary::Uploader.upload(
+      pdf_path,
+      resource_type: "raw",
+      ocr: "adv_ocr"
+    )
+
+    # Step 3: Extract OCR text
+    ocr_text = result.dig(
+      "info", "ocr", "adv_ocr", "data", 0,
+      "textAnnotations", 0, "description"
+    )
+
+    return "PDF uploaded, but Cloudinary returned no readable text." if ocr_text.blank?
+
+    # Step 4: Summarize with LLM
     chat = RubyLLM.chat(model: "gpt-4o-mini")
-
     response = chat.ask(<<~PROMPT)
-      The user uploaded a PDF resume. Analyze and summarize the key information.
+      A resume PDF was uploaded. OCR extracted the text below:
 
-      PDF CONTENT:
-      #{pdf_text}
+      #{ocr_text}
+
+      Create a professional structured resume summary containing:
+      - One-line profile summary
+      - Skills
+      - Experience highlights
+      - Education
+      - Strengths
+      - Mild weaknesses
+      - Ideal job roles
     PROMPT
 
     response.content
-  end
-
-  # -----------------------------
-  # PDF EXTRACTION
-  # -----------------------------
-  def extract_pdf_text(file)
-    # Download bytes from ActiveStorage → wrap in IO
-    io = StringIO.new(file.download)
-
-    reader = PDF::Reader.new(io)
-    reader.pages.map(&:text).join("\n")
-  rescue => e
-    "PDF extraction failed: #{e.message}"
   end
 end

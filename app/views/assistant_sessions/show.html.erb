@@ -2,8 +2,12 @@
   Interview for <%= @session.role %> — Question <%= @session.current_question_number %>/25
 </h1>
 
-<div id="messages" class="space-y-3 max-h-[70vh] overflow-y-auto p-2 border rounded">
+<!-- Messages container -->
+<div id="messages"
+     data-controller="autoscroll"
+     class="space-y-3 max-h-[70vh] overflow-y-auto p-2 border rounded">
   <%= render @messages %>
 </div>
 
+<!-- Message form -->
 <%= render "messages/form", session: @session %>
