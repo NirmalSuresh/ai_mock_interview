@@ -6,26 +6,24 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    # END if time expired
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
     @message = @session.messages.new(message_params)
-    raw_input = @message.content.to_s.strip.downcase
 
-    # 🔥 Detect "end" BEFORE saving
-    if raw_input.start_with?("end")
+    # Detect "end"
+    if @message.content.to_s.strip.downcase.start_with?("end")
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # 🔥 PDF Upload Flow (must attach BEFORE checking)
-    if params[:message][:file].present?
-      @message.file.attach(params[:message][:file])
-      @message.save!
+    # SAVE EARLY so attachment exists
+    @message.save!
 
+    # 🔥 CORRECT PDF CHECK
+    if @message.file.attached?
       ai_summary = handle_pdf(@message.file)
 
       @session.messages.create!(
@@ -36,10 +34,7 @@ class MessagesController < ApplicationController
       return respond_with_turbo
     end
 
-    # 🔥 Normal text flow
-    @message.save!
-
-    # If last question → finish
+    # Normal text flow
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -70,6 +65,7 @@ class MessagesController < ApplicationController
     )
 
     @session.update!(current_question_number: next_question_number)
+
     respond_with_turbo
   end
 
@@ -81,26 +77,22 @@ class MessagesController < ApplicationController
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
     response = chat.ask(<<~PROMPT)
-      You are a professional assistant.
+      Summarize the uploaded PDF in clear bullet points.
 
-      A PDF was uploaded by the user. Extract meaning and summarize it.
-
-      PDF Content:
+      PDF CONTENT:
       #{text}
-
-      Provide a clear, structured explanation.
     PROMPT
 
     response.content
   end
 
-  # ✅ Cloudinary-safe PDF extraction (StringIO)
   def extract_pdf_text(file)
-    downloaded_bytes = file.download # binary string from Cloudinary
-    io = StringIO.new(downloaded_bytes) # wrap for PDF::Reader
+    data = file.download   # raw bytes from Cloudinary
+    io = StringIO.new(data)
 
     reader = PDF::Reader.new(io)
     reader.pages.map(&:text).join("\n")
+
   rescue => e
     "PDF extraction error: #{e.message}"
   end
