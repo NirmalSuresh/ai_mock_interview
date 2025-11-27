@@ -8,6 +8,6 @@
         locals: { message: @assistant_msg } %>
 <% end %>
 
-<%= turbo_stream.update "message_form",
+<%= turbo_stream.replace "message_form",
       partial: "messages/form",
       locals: { session: @session } %>
