@@ -1,0 +1,4 @@
+<%# app/views/messages/_messages.html.erb %>
+<% messages.each do |message| %>
+  <%= render partial: "messages/message", locals: { message: message } %>
+<% end %>

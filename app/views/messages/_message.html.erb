@@ -1,7 +1,13 @@
+<%# app/views/messages/_message.html.erb %>
+
 <div class="message mb-3 p-2 <%= message.role %>">
 
-  <strong><%= message.role.capitalize %></strong>
+  <div class="d-flex justify-content-between">
+    <strong><%= message.role.capitalize %></strong>
+    <small class="text-muted"><%= time_ago_in_words(message.created_at) %> ago</small>
+  </div>
 
+  <%# ---- ATTACHMENTS (image, audio, pdf, doc etc.) ---- %>
   <% if message.attachment.attached? %>
     <div class="mt-2">
 
@@ -15,14 +21,15 @@
         <%= link_to "View PDF", message.attachment_url, target: "_blank" %>
 
       <% else %>
-        <%= link_to message.attachment.filename, message.attachment_url, target: "_blank" %>
+        <%= link_to message.attachment.filename.to_s, message.attachment_url, target: "_blank" %>
       <% end %>
 
     </div>
   <% end %>
 
+  <%# ---- TEXT MESSAGE ---- %>
   <% if message.content.present? %>
-    <p class="mt-2"><%= simple_format(message.content) %></p>
+    <div class="mt-2"><%= simple_format(message.content) %></div>
   <% end %>
 
 </div>
