@@ -8,6 +8,20 @@
         locals: { message: @assistant_msg } %>
 <% end %>
 
-<%= turbo_stream.replace "message_form",
-      partial: "messages/form",
-      locals: { session: @session } %>
+<%= turbo_stream.replace "message_form" do %>
+  <%= render "messages/form", session: @session %>
+<% end %>
+
+<%= turbo_stream.after "messages" do %>
+  <script>
+    // Hard reset as fallback
+    const input = document.querySelector('#message_content');
+    if (input) input.value = "";
+
+    // Auto focus back
+    setTimeout(() => {
+      const field = document.querySelector('#message_content');
+      if (field) field.focus();
+    }, 50);
+  </script>
+<% end %>

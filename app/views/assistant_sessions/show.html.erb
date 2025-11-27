@@ -15,17 +15,15 @@
     </div>
 
     <!-- Messages -->
-    <div id="messages"
-         data-controller="autoscroll"
-         data-autoscroll-target="messages"
-         class="messenger-chat p-4">
-      <%= render "messages/messages", messages: @messages %>
-    </div>
+    <div data-controller="autoscroll">
+  <div id="messages" data-autoscroll-target="messages" class="messenger-chat p-4">
 
     <!-- Input -->
-    <div class="messenger-input shadow-sm">
-      <%= render "messages/form", session: @session %>
-    </div>
+  <div class="messenger-input shadow-sm"
+     id="message_form"
+     data-controller="message-form">
+  <%= render "messages/form", session: @session %>
+</div>
 
   </div>
 </div>

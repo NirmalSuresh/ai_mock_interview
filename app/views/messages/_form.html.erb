@@ -3,8 +3,9 @@
               html: { class: "d-flex align-items-center gap-2 w-100", multipart: true } do |f| %>
 
   <%= f.text_field :content,
+      id: "message_content",
       placeholder: "Aa",
-      value: "",
+      data: { "message-form-target": "input" },
       class: "form-control rounded-pill px-4 py-2" %>
 
   <%= f.file_field :attachment, class: "d-none", id: "fileUpload" %>
