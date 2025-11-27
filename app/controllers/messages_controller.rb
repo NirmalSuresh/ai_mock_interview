@@ -3,98 +3,104 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
+    # ❗ End interview if time expired
+    if @session.expired?
+      @session.update!(status: "completed")
+      return redirect_to final_report_assistant_session_path(@session)
+    end
+
+    raw_input = params.dig(:message, :content).to_s
+    user_input = raw_input.strip.downcase
+
+    # ❗ Detect "end" BEFORE saving user message
+    if user_input.start_with?("end")
+      @session.update!(status: "completed")
+
+      respond_to do |format|
+        format.html { redirect_to final_report_assistant_session_path(@session) }
+
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "messages",
+            partial: "assistant_sessions/redirect_to_report",
+            locals: { session: @session }
+          )
+        end
+      end
+
+      return
+    end
+
+    # -----------------------------------------
+    # ⭐ Save user message
+    # -----------------------------------------
     @message = @session.messages.create!(
-      message_params.merge(sender: "user")
+      role: "user",
+      content: raw_input
     )
 
-    if @message.file.attached?
+    # -----------------------------------------
+    # ⭐ If last question reached
+    # -----------------------------------------
+    if @session.current_question_number >= 25
+      @session.update!(status: "completed")
+      return redirect_to final_report_assistant_session_path(@session)
+    end
+
+    # -----------------------------------------
+    # ⭐ Prepare next question
+    # -----------------------------------------
+    next_q = @session.current_question_number + 1
+
+    history = @session.messages.order(:created_at).last(10)
+               .map { |m| "#{m.role.capitalize}: #{m.content}" }
+               .join("\n")
+
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
+
+    ai_response = chat.ask(<<~PROMPT)
+      #{SystemPrompt.text}
+
+      Role: #{@session.role}
+
+      Recent conversation:
+      #{history}
+
+      Ask interview question number #{next_q}.
+    PROMPT
+
+    # -----------------------------------------
+    # ⭐ Handle if LLM fails or returns nil
+    # -----------------------------------------
+    if ai_response.present? && ai_response.content.present?
       @assistant_msg = @session.messages.create!(
-        sender: "assistant",
-        content: analyze_file(@message.file.blob)
+        role: "assistant",
+        content: ai_response.content
       )
     else
       @assistant_msg = @session.messages.create!(
-        sender: "assistant",
-        content: process_answer(@message.content)
+        role: "assistant",
+        content: "I’m sorry, I didn’t get that properly. Please answer again."
       )
     end
 
-    @session.update!(
-      current_question_number: @session.current_question_number + 1
-    )
+    # -----------------------------------------
+    # ⭐ Update session progress
+    # -----------------------------------------
+    @session.update!(current_question_number: next_q)
 
+    # -----------------------------------------
+    # ⭐ Respond with Turbo
+    # -----------------------------------------
     respond_to do |format|
       format.turbo_stream
-      format.html { redirect_to @session }
+      format.html { redirect_to assistant_session_path(@session) }
     end
   end
 
   private
 
   def set_session
-    @session = AssistantSession.find(params[:assistant_session_id])
-  end
-
-  def message_params
-    params.require(:message).permit(:content, :file)
-  end
-
-  # ==========================================================
-  # NORMAL TEXT ANSWER
-  # ==========================================================
-  def process_answer(text)
-    chat = RubyLLM.chat(model: "gpt-4o-mini")
-
-    response = chat.ask(<<~PROMPT)
-      You are a professional mock interview assistant.
-      The candidate answered:
-
-      "#{text}"
-
-      Reply with a short, helpful next-step message.
-    PROMPT
-
-    response.content
-  end
-
-  # ==========================================================
-  # FILE ANALYSIS — SUPER SIMPLE
-  # ==========================================================
-  def analyze_file(blob)
-    content = extract_text(blob)
-    return "File uploaded, but no readable text detected." if content.blank?
-
-    chat = RubyLLM.chat(model: "gpt-4o-mini")
-
-    response = chat.ask(<<~PROMPT)
-      The candidate uploaded a file during the interview.
-
-      The extracted text is:
-
-      #{content}
-
-      Give a short, professional analysis in 4–6 lines.
-    PROMPT
-
-    response.content
-  end
-
-  # Extracts text from ANY uploaded file (PDF or TXT)
-  def extract_text(blob)
-    text = ""
-
-    blob.open do |tempfile|
-      case blob.content_type
-      when "application/pdf"
-        reader = PDF::Reader.new(tempfile.path)
-        text = reader.pages.map(&:text).join("\n")
-      else
-        text = File.read(tempfile.path)
-      end
-    end
-
-    text
-  rescue
-    nil
+    @session = current_user.assistant_sessions.find(params[:assistant_session_id])
   end
 end
