@@ -3,83 +3,90 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
+    # --- END IF SESSION EXPIRED ---
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    raw = params.dig(:message, :content).to_s.strip
+    raw_input = params.dig(:message, :content).to_s
+    user_input = raw_input.strip
 
-    # END command
-    if raw.downcase.start_with?("end")
+    # --- DETECT “end” COMMAND ---
+    if user_input.downcase.start_with?("end")
       @session.update!(status: "completed")
-      return redirect_to final_report_assistant_session_path(@session)
+
+      respond_to do |format|
+        format.html { redirect_to final_report_assistant_session_path(@session) }
+
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "messages",
+            partial: "assistant_sessions/redirect_to_report",
+            locals: { session: @session }
+          )
+        end
+      end
+
+      return
     end
 
-    # Save user message
+    # --- SAVE MESSAGE (text + optional file) ---
     @message = @session.messages.create!(
       role: "user",
-      content: raw.presence,
+      content: raw_input.presence,
       attachment: message_params[:attachment]
     )
 
-    # FILE UPLOADED -> ANALYZE FIRST
+    # --- FILE ATTACHED → ANALYZE ---
     if @message.attachment.attached?
       ai_text = FileAnalyzer.call(@message)
 
-      @session.messages.create!(
+      @assistant_msg = @session.messages.create!(
         role: "assistant",
         content: ai_text
       )
 
-      ask_next_question
       return respond_ok
     end
 
-    # TEXT MESSAGE -> NEXT QUESTION
-    ask_next_question
+    # --- NORMAL INTERVIEW QUESTION FLOW ---
+    if @session.current_question_number >= 25
+      @session.update!(status: "completed")
+      return redirect_to final_report_assistant_session_path(@session)
+    end
+
+    next_q = @session.current_question_number + 1
+
+    history = @session.messages.order(:created_at).last(10).map { |m|
+      "#{m.role.capitalize}: #{m.content}"
+    }.join("\n")
+
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
+
+    ai_response = chat.ask(<<~PROMPT)
+      #{SystemPrompt.text}
+
+      Role: #{@session.role}
+
+      Recent conversation:
+      #{history}
+
+      Ask interview question number #{next_q}.
+    PROMPT
+
+    @assistant_msg = @session.messages.create!(
+      role: "assistant",
+      content: ai_response.content.presence || "Please repeat your answer."
+    )
+
+    @session.update!(current_question_number: next_q)
+
     respond_ok
   end
 
   private
 
-  # -----------------------------------------------------
-  # 🚀 MAIN QUESTION FLOW
-  # -----------------------------------------------------
-  def ask_next_question
-    # Finish if 25 done
-    return finish_session if @session.current_question_number >= 25
-
-    next_q = @session.current_question_number + 1
-
-    # ✅ Correct RubyLLM API for your gem version
-    chat = RubyLLM::Chat.new(model: "gpt-4o-mini")
-
-    response = chat.ask(
-      "You are an interview bot. Ask question number #{next_q} " \
-      "for the role: #{@session.role}. " \
-      "Keep it short and only output the question."
-    )
-
-    @session.messages.create!(
-      role: "assistant",
-      content: response.content || "Next question #{next_q}: Please continue."
-    )
-
-    @session.update!(current_question_number: next_q)
-  end
-
-  # -----------------------------------------------------
-  # 🚀 END SESSION
-  # -----------------------------------------------------
-  def finish_session
-    @session.update!(status: "completed")
-    redirect_to final_report_assistant_session_path(@session)
-  end
-
-  # -----------------------------------------------------
-  # 🚀 RESPONSE HANDLING
-  # -----------------------------------------------------
   def respond_ok
     respond_to do |format|
       format.turbo_stream

@@ -37,11 +37,13 @@ class Message < ApplicationRecord
   # ---------------------------
   # HELPERS
   # ---------------------------
-  # Cloudinary URL (SAFE & WORKS ON RENDER)
   def attachment_url
-  Rails.application.routes.url_helpers.rails_blob_url(attachment, only_path: false)
-rescue
-  nil
+  return unless attachment.attached?
+
+  Rails.application.routes.url_helpers.rails_blob_url(
+    attachment,
+    host: ENV.fetch("HOST_URL", "https://ai-mock-interview-njap.onrender.com")
+  )
 end
 
 
