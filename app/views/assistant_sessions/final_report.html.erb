@@ -1,55 +1,53 @@
-<div class="max-w-3xl mx-auto bg-white shadow p-6 rounded mt-6">
+<div class="card shadow-lg p-5 mx-auto" style="max-width: 800px;">
 
-  <h1 class="text-3xl font-bold mb-4 text-center">
-    Final Interview Report
-  </h1>
+  <h1 class="text-center mb-4 fw-bold">Final Interview Report</h1>
 
-  <p class="text-lg mb-6 text-center">
+  <p class="text-center text-secondary mb-4">
     Role: <strong><%= @session.role %></strong>
   </p>
 
   <!-- Score -->
-  <div class="text-center mb-8">
-    <p class="text-xl font-semibold">Overall Score</p>
-    <p class="text-5xl font-bold text-blue-600">
+  <div class="text-center mb-5">
+    <p class="fw-semibold fs-5">Overall Score</p>
+    <p class="fw-bold display-4 text-primary">
       <%= @session.total_score || 50 %>/100
     </p>
   </div>
 
   <!-- Summary -->
-  <h2 class="text-xl font-semibold mb-2">Summary</h2>
-  <div class="p-4 border rounded bg-gray-50 mb-6">
+  <h4 class="fw-semibold mb-2">Summary</h4>
+  <div class="p-3 border rounded bg-light mb-4">
     <%= @session.summary.presence || "No summary generated." %>
   </div>
 
   <!-- Strengths -->
-  <h2 class="text-xl font-semibold mb-2">Strengths</h2>
-  <div class="p-4 border rounded bg-green-50 mb-6">
+  <h4 class="fw-semibold mb-2">Strengths</h4>
+  <div class="p-3 border rounded bg-success bg-opacity-10 mb-4">
     <%= @session.strengths.presence || "No strengths provided." %>
   </div>
 
   <!-- Weaknesses -->
-  <h2 class="text-xl font-semibold mb-2">Weaknesses</h2>
-  <div class="p-4 border rounded bg-red-50 mb-6">
+  <h4 class="fw-semibold mb-2">Weaknesses</h4>
+  <div class="p-3 border rounded bg-danger bg-opacity-10 mb-4">
     <%= @session.weaknesses.presence || "No weaknesses provided." %>
   </div>
 
-  <!-- User Answers -->
-  <h2 class="text-xl font-semibold mb-3">Your Answers</h2>
-  <div class="space-y-3 mb-6">
+  <!-- Answers -->
+  <h4 class="fw-semibold mb-3">Your Answers</h4>
+  <div class="mb-4">
     <% @session.messages.where(role: "user").each_with_index do |msg, i| %>
-      <div class="p-3 border rounded bg-gray-100">
+      <div class="p-3 border rounded bg-light mb-3">
         <strong>Answer <%= i + 1 %>:</strong>
-        <p><%= msg.content %></p>
+        <p class="mb-0"><%= msg.content %></p>
       </div>
     <% end %>
   </div>
 
   <!-- Restart -->
-  <div class="mt-6 text-center">
+  <div class="text-center mt-4">
     <%= link_to "Start New Interview",
                 new_assistant_session_path,
-                class: "px-6 py-3 bg-blue-600 text-white rounded-lg text-lg" %>
+                class: "btn btn-primary btn-lg px-4" %>
   </div>
 
 </div>

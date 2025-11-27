@@ -7,23 +7,59 @@
 
     <%= stylesheet_link_tag "application", media: "all" %>
     <%= javascript_importmap_tags %>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+      body {
+        background: #f5f7fa;
+        font-family: 'Inter', sans-serif;
+      }
+      .navbar-brand {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+    </style>
   </head>
 
   <body>
-    <% if notice.present? %>
-      <p class="notice"><%= notice %></p>
-    <% end %>
-    <% if alert.present? %>
-      <p class="alert"><%= alert %></p>
-    <% end %>
 
-    <%= yield %>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+      <div class="container">
+        <a class="navbar-brand" href="/">AI Interview</a>
+      </div>
+    </nav>
+
+    <div class="container mb-5">
+
+      <% if notice.present? %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <%= notice %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <% if alert.present? %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <%= alert %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <%= yield %>
+
+    </div>
+
+    <script>
+      function scrollToBottom() {
+        const box = document.getElementById("messages");
+        if (box) box.scrollTop = box.scrollHeight;
+      }
+    </script>
+
   </body>
 </html>
-
-<script>
-  function scrollToBottom() {
-    const box = document.getElementById("messages");
-    if (box) box.scrollTop = box.scrollHeight;
-  }
-</script>

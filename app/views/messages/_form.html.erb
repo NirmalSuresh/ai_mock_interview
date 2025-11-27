@@ -1,16 +1,24 @@
-<%= form_with model: [session, Message.new],
-              data: { turbo_stream: true },
-              html: { multipart: true } do |f| %>
+<div id="message_form" class="card shadow-sm p-3 mt-3">
 
-  <div class="mb-2">
-    <%= f.text_field :content, placeholder: "Type your message...", class: "form-control" %>
-  </div>
+  <%= form_with model: [session, Message.new],
+                data: { turbo_stream: true },
+                html: { multipart: true } do |f| %>
 
-  <div class="mb-2">
-    <%= f.file_field :attachment, class: "form-control" %>
-    <small class="text-muted">Upload image/audio/document (max 5MB)</small>
-  </div>
+    <div class="mb-3">
+      <%= f.text_field :content,
+            placeholder: "Type your message...",
+            class: "form-control form-control-lg" %>
+    </div>
 
-  <%= f.submit "Send", class: "btn btn-primary" %>
+    <div class="mb-3">
+      <%= f.file_field :attachment, class: "form-control" %>
+      <small class="text-muted">Upload image/audio/document (max 5MB)</small>
+    </div>
 
-<% end %>
+    <div class="text-end">
+      <%= f.submit "Send", class: "btn btn-primary btn-lg px-4" %>
+    </div>
+
+  <% end %>
+
+</div>
