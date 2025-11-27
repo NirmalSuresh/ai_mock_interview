@@ -23,7 +23,7 @@ class MessagesController < ApplicationController
       attachment: message_params[:attachment]
     )
 
-    # File uploaded → analyze + continue
+    # FILE UPLOADED -> ANALYZE FIRST
     if @message.attachment.attached?
       ai_text = FileAnalyzer.call(@message)
 
@@ -36,41 +36,50 @@ class MessagesController < ApplicationController
       return respond_ok
     end
 
-    # Normal text → next Q
+    # TEXT MESSAGE -> NEXT QUESTION
     ask_next_question
     respond_ok
   end
 
   private
 
- def ask_next_question
-  # If done → finish
-  return finish_session if @session.current_question_number >= 25
+  # -----------------------------------------------------
+  # 🚀 MAIN QUESTION FLOW
+  # -----------------------------------------------------
+  def ask_next_question
+    # Finish if 25 done
+    return finish_session if @session.current_question_number >= 25
 
-  next_q = @session.current_question_number + 1
+    next_q = @session.current_question_number + 1
 
-  chat = RubyLLM.chat(model: "gpt-4o-mini")
+    # ✅ Correct RubyLLM API for your gem version
+    chat = RubyLLM::Chat.new(model: "gpt-4o-mini")
 
-  response = chat.ask(<<~TEXT)
-    You are an interview bot.
-    Ask question number #{next_q} for the role: #{@session.role}.
-    Keep it short and clear. Only output the question.
-  TEXT
+    response = chat.ask(
+      "You are an interview bot. Ask question number #{next_q} " \
+      "for the role: #{@session.role}. " \
+      "Keep it short and only output the question."
+    )
 
-  @session.messages.create!(
-    role: "assistant",
-    content: response.content || "Next question #{next_q}: Please continue."
-  )
+    @session.messages.create!(
+      role: "assistant",
+      content: response.content || "Next question #{next_q}: Please continue."
+    )
 
-  @session.update!(current_question_number: next_q)
-end
+    @session.update!(current_question_number: next_q)
+  end
 
-
+  # -----------------------------------------------------
+  # 🚀 END SESSION
+  # -----------------------------------------------------
   def finish_session
     @session.update!(status: "completed")
     redirect_to final_report_assistant_session_path(@session)
   end
 
+  # -----------------------------------------------------
+  # 🚀 RESPONSE HANDLING
+  # -----------------------------------------------------
   def respond_ok
     respond_to do |format|
       format.turbo_stream
