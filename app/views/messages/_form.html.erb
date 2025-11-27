@@ -1,24 +1,18 @@
-<div id="message_form" class="card shadow-sm p-3 mt-3">
+<%= form_with model: [session, Message.new],
+              data: { turbo_stream: true },
+              html: { class: "d-flex align-items-center gap-2 w-100", multipart: true } do |f| %>
 
-  <%= form_with model: [session, Message.new],
-                data: { turbo_stream: true },
-                html: { multipart: true } do |f| %>
+  <%= f.text_field :content,
+        placeholder: "Aa",
+        class: "form-control rounded-pill px-4 py-2" %>
 
-    <div class="mb-3">
-      <%= f.text_field :content,
-            placeholder: "Type your message...",
-            class: "form-control form-control-lg" %>
-    </div>
+  <%= f.file_field :attachment, class: "d-none", id: "fileUpload" %>
 
-    <div class="mb-3">
-      <%= f.file_field :attachment, class: "form-control" %>
-      <small class="text-muted">Upload image/audio/document (max 5MB)</small>
-    </div>
+  <label for="fileUpload" class="btn btn-light rounded-circle shadow-sm">
+    📎
+  </label>
 
-    <div class="text-end">
-      <%= f.submit "Send", class: "btn btn-primary btn-lg px-4" %>
-    </div>
+  <%= f.submit "➤",
+        class: "btn btn-primary rounded-circle px-3 py-2 fw-bold" %>
 
-  <% end %>
-
-</div>
+<% end %>

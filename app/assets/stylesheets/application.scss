@@ -24,3 +24,63 @@
 .message {
   padding: 10px;
 }
+
+.messenger-box {
+  max-width: 650px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.messenger-header {
+  background: linear-gradient(135deg, #1877f2, #3b82f6);
+  color: white;
+}
+
+.messenger-chat {
+  flex: 1;
+  overflow-y: auto;
+  background: #f0f2f5;
+}
+
+.messenger-input {
+  padding: 12px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+.timer-pill {
+  background: rgba(255,255,255,0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.chat-bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  display: inline-block;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+/* User bubble — Messenger Blue */
+.chat-bubble.user {
+  background: #1877f2;
+  color: white;
+  border-bottom-right-radius: 2px;
+}
+
+/* AI bubble — Light grey */
+.chat-bubble.assistant {
+  background: #e4e6eb;
+  color: #111;
+  border-bottom-left-radius: 2px;
+}

@@ -1,35 +1,23 @@
-<%# app/views/messages/_message.html.erb %>
+<div class="mb-3 w-100 <%= message.role == 'user' ? 'text-end' : 'text-start' %>">
 
-<div class="message mb-3 p-2 <%= message.role %>">
+  <div class="chat-bubble <%= message.role %>">
 
-  <div class="d-flex justify-content-between">
-    <strong><%= message.role.capitalize %></strong>
-    <small class="text-muted"><%= time_ago_in_words(message.created_at) %> ago</small>
+    <% if message.content.present? %>
+      <%= simple_format(message.content, {}, wrapper_tag: "span") %>
+    <% end %>
+
+    <% if message.attachment.attached? %>
+      <div class="mt-2">
+        <% if message.image? %>
+          <%= image_tag message.attachment, class: "img-fluid rounded" %>
+        <% elsif message.audio? %>
+          <%= audio_tag message.attachment_url, controls: true %>
+        <% else %>
+          <%= link_to message.attachment.filename.to_s, message.attachment_url %>
+        <% end %>
+      </div>
+    <% end %>
+
   </div>
-
-  <%# ---- ATTACHMENTS (image, audio, pdf, doc etc.) ---- %>
-  <% if message.attachment.attached? %>
-    <div class="mt-2">
-
-      <% if message.image? %>
-        <%= image_tag message.attachment, style: "max-width: 250px; border-radius: 6px;" %>
-
-      <% elsif message.audio? %>
-        <%= audio_tag message.attachment_url, controls: true %>
-
-      <% elsif message.pdf? %>
-        <%= link_to "View PDF", message.attachment_url, target: "_blank" %>
-
-      <% else %>
-        <%= link_to message.attachment.filename.to_s, message.attachment_url, target: "_blank" %>
-      <% end %>
-
-    </div>
-  <% end %>
-
-  <%# ---- TEXT MESSAGE ---- %>
-  <% if message.content.present? %>
-    <div class="mt-2"><%= simple_format(message.content) %></div>
-  <% end %>
 
 </div>
