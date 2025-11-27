@@ -12,18 +12,17 @@ class MessagesController < ApplicationController
     end
 
     @message = @session.messages.new(message_params)
-
-    raw_input = @message.content.to_s.strip
-    lowered = raw_input.downcase
+    raw_input = @message.content.to_s.strip.downcase
 
     # 🔥 Detect "end" BEFORE saving
-    if lowered.start_with?("end")
+    if raw_input.start_with?("end")
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # 🔥 If PDF is uploaded → SPECIAL FLOW
-    if @message.file.attached?
+    # 🔥 PDF Upload Flow (must attach BEFORE checking)
+    if params[:message][:file].present?
+      @message.file.attach(params[:message][:file])
       @message.save!
 
       ai_summary = handle_pdf(@message.file)
@@ -36,10 +35,10 @@ class MessagesController < ApplicationController
       return respond_with_turbo
     end
 
-    # 🔥 Normal text flow (the existing interview logic)
+    # 🔥 Normal TEXT flow
     @message.save!
 
-    # If last question
+    # If last question → finish
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -70,7 +69,6 @@ class MessagesController < ApplicationController
     )
 
     @session.update!(current_question_number: next_question_number)
-
     respond_with_turbo
   end
 
@@ -83,7 +81,6 @@ class MessagesController < ApplicationController
 
     response = chat.ask(<<~PROMPT)
       You are a professional assistant.
-
       A PDF was uploaded by the user. Extract meaning and summarize it.
 
       PDF Content:
@@ -95,9 +92,11 @@ class MessagesController < ApplicationController
     response.content
   end
 
+  # Safe PDF reader with error handling
   def extract_pdf_text(file)
-    reader = PDF::Reader.new(file.download)
-    reader.pages.map(&:text).join("\n")
+    PDF::Reader.new(file.download).pages.map(&:text).join("\n")
+  rescue => e
+    "PDF extraction error: #{e.message}"
   end
 
   def respond_with_turbo

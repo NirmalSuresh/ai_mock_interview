@@ -9,11 +9,13 @@ class Message < ApplicationRecord
   def acceptable_file
     return unless file.attached?
 
-    if file.blob.byte_size > 5.megabytes
+    # File size check
+    if file.byte_size > 5.megabytes
       errors.add(:file, "is too large (max 5 MB)")
     end
 
-    unless file.blob.content_type == "application/pdf"
+    # Safe content-type check (NEVER use file.blob.content_type)
+    unless file.content_type == "application/pdf"
       errors.add(:file, "must be a PDF")
     end
   end
