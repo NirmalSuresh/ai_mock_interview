@@ -21,10 +21,12 @@
             <div>
               <h5 class="mb-1"><%= session.role %></h5>
               <small>
-                Started: <%= session.started_at.strftime("%d %b, %I:%M %p") %>
-                |
-                Status: <%= session.status.humanize %>
-              </small>
+  Started:
+  <%= session.started_at.present? ? session.started_at.strftime("%d %b, %I:%M %p") : "Not recorded" %>
+  |
+  Status: <%= session.status.humanize %>
+</small>
+
             </div>
 
             <% if session.completed? %>
