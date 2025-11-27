@@ -3,7 +3,7 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
-    # 1. END IF SESSION EXPIRED
+    # 1. End if expired
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -12,32 +12,20 @@ class MessagesController < ApplicationController
     raw_input = params.dig(:message, :content).to_s
     user_input = raw_input.strip.downcase
 
-    # 2. MANUAL "end"
+    # 2. User manually types "end"
     if user_input == "end" || user_input.start_with?("end ")
       @session.update!(status: "completed")
-
-      respond_to do |format|
-        format.html { redirect_to final_report_assistant_session_path(@session) }
-        format.turbo_stream do
-          render turbo_stream: turbo_stream.replace(
-            "messages",
-            partial: "assistant_sessions/redirect_to_report",
-            locals: { session: @session }
-          )
-        end
-      end
-
-      return
+      return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # 3. SAVE USER MESSAGE
+    # 3. Save user message
     @message = @session.messages.create!(
       role: "user",
       content: raw_input.presence,
       attachment: message_params[:attachment]
     )
 
-    # 4. FILE SENT → ANALYZE WITH GROQ
+    # 4. File uploaded → Analyze
     if @message.attachment.attached?
       ai_text = FileAnalyzer.call(@message)
 
@@ -50,22 +38,22 @@ class MessagesController < ApplicationController
       return respond_ok
     end
 
-    # 5. NORMAL TEXT MESSAGE → NEXT QUESTION
+    # 5. Normal text → Ask next question
     generate_next_question!
     respond_ok
   end
 
+
   private
 
-  # -------------------------------------------------------
-  # AUTO-GENERATE NEXT QUESTION (FIXED)
-  # -------------------------------------------------------
+  # ===========================================================
+  #           FIXED VERSION — NO ARGUMENTS NEEDED
+  # ===========================================================
   def generate_next_question!
-    return if finish_session_if_done  # IMPORTANT FIX
+    return finish_session_if_done
 
     next_q = @session.current_question_number + 1
 
-    # Conversation history
     history = @session.messages.order(:created_at).last(10).map do |m|
       "#{m.role.capitalize}: #{m.content}"
     end.join("\n")
@@ -77,7 +65,7 @@ class MessagesController < ApplicationController
       messages: [
         { role: "system", content: SystemPrompt.text },
         { role: "user", content: "Role: #{@session.role}\n\nConversation:\n#{history}" },
-        { role: "user", content: "Ask interview question number #{next_q}." }
+        { role: "user", content: "Ask interview question #{next_q}." }
       ]
     )
 
@@ -89,28 +77,24 @@ class MessagesController < ApplicationController
     @session.update!(current_question_number: next_q)
   end
 
-  # -------------------------------------------------------
-  # END SESSION AT 25 QUESTIONS
-  # -------------------------------------------------------
+
   def finish_session_if_done
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       redirect_to final_report_assistant_session_path(@session)
       return true
     end
-
     false
   end
 
-  # -------------------------------------------------------
-  # RESPONSE HANDLER
-  # -------------------------------------------------------
+
   def respond_ok
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to assistant_session_path(@session) }
     end
   end
+
 
   def set_session
     @session = current_user.assistant_sessions.find(params[:assistant_session_id])
