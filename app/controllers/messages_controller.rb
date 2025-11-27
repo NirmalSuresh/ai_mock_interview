@@ -43,35 +43,28 @@ class MessagesController < ApplicationController
 
   private
 
-  def ask_next_question
-    return finish_session if @session.current_question_number >= 25
+ def ask_next_question
+  # If done → finish
+  return finish_session if @session.current_question_number >= 25
 
-    next_q = @session.current_question_number + 1
+  next_q = @session.current_question_number + 1
 
-    history = @session.messages.order(:created_at).last(10).map do |m|
-      "#{m.role.capitalize}: #{m.content}"
-    end.join("\n")
+  chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    chat = RubyLLM.chat(model: "gpt-4o-mini")
+  response = chat.ask(<<~TEXT)
+    You are an interview bot.
+    Ask question number #{next_q} for the role: #{@session.role}.
+    Keep it short and clear. Only output the question.
+  TEXT
 
-    ai = chat.ask(<<~MSG)
-      #{SystemPrompt.text}
+  @session.messages.create!(
+    role: "assistant",
+    content: response.content || "Next question #{next_q}: Please continue."
+  )
 
-      Role: #{@session.role}
+  @session.update!(current_question_number: next_q)
+end
 
-      Conversation History:
-      #{history}
-
-      Ask interview question number #{next_q}.
-    MSG
-
-    @session.messages.create!(
-      role: "assistant",
-      content: ai.content.presence || "Please repeat your answer."
-    )
-
-    @session.update!(current_question_number: next_q)
-  end
 
   def finish_session
     @session.update!(status: "completed")
