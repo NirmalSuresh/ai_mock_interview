@@ -39,8 +39,11 @@ class Message < ApplicationRecord
   # ---------------------------
   # Cloudinary URL (SAFE & WORKS ON RENDER)
   def attachment_url
-    attachment.url if attachment.attached?
-  end
+  Rails.application.routes.url_helpers.rails_blob_url(attachment, only_path: false)
+rescue
+  nil
+end
+
 
   def attachment_content_type
     attachment&.blob&.content_type

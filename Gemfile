@@ -13,9 +13,7 @@ gem "pg", "~> 1.1"
 
 gem "devise"
 
-gem "ruby_llm"
-
-gem "ruby-llm", ">= 1.7"
+gem "ruby_llm", "~> 1.7"
 
 gem "pdf-reader"
 

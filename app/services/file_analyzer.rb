@@ -1,40 +1,61 @@
+require "base64"
+
 class FileAnalyzer
   def self.call(message)
-    attachment = message.attachment
+    blob = message.attachment.blob
+    file_path = ActiveStorage::Blob.service.send(:path_for, blob.key)
+    base64_file = Base64.strict_encode64(File.read(file_path))
 
-    return "No file found." unless attachment.attached?
+    chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    file_bytes = attachment.download
-    filename = attachment.filename.to_s
-    content_type = attachment.content_type
+    prompt = base_prompt(message.attachment_content_type)
 
-    # A simple instruction for system prompt
-    system_prompt = case content_type
-    when /\Aimage\//
-      "You are an expert at analyzing user-uploaded IMAGES. Describe the image, extract text, and give interview insights."
-    when /\Aaudio\//
-      "You are an expert at analyzing AUDIO files. Transcribe the speech, summarize, and give communication feedback."
-    when /pdf|msword|text|officedocument/
-      "You are an expert at analyzing DOCUMENTS. Extract text, summarize, and give interview insights."
-    else
-      "You are an AI assistant. Analyze the uploaded file."
-    end
-
-    # RUBYLLM LEGACY API
-    client = RubyLLM.chat(model: "gpt-4o-mini")
-
-    result = client.ask(
-      system_prompt,
-      attachments: [
-        {
-          name: filename,
-          data: file_bytes,
-          content_type: content_type
+    result = chat.ask(
+      prompt: prompt,
+      input: {
+        file: {
+          name: blob.filename.to_s,
+          mime_type: blob.content_type,
+          data: base64_file
         }
-      ]
+      }
     )
 
-    # Make sure it never returns nil
-    (result&.content || "I could not analyze that file.").to_s
+    result&.content || "I couldn't analyze this file."
+  end
+
+  def self.base_prompt(content_type)
+    if content_type.start_with?("image/")
+      <<~PROMPT
+        You are analyzing an image file uploaded by the user.
+        1. Describe the image.
+        2. Extract text (OCR).
+        3. Give interview-related feedback.
+      PROMPT
+
+    elsif content_type.start_with?("audio/")
+      <<~PROMPT
+        You are analyzing an audio file uploaded by the user.
+        1. Transcribe.
+        2. Summarize.
+        3. Give interview communication feedback.
+      PROMPT
+
+    elsif %w[
+      application/pdf
+      application/msword
+      application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      text/plain
+    ].include?(content_type)
+      <<~PROMPT
+        You are analyzing a document uploaded by the user.
+        1. Extract the key text.
+        2. Summarize it in 3–4 lines.
+        3. Provide interview-related insights.
+      PROMPT
+
+    else
+      "Describe and analyze this file."
+    end
   end
 end
