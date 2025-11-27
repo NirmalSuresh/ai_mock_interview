@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AI Chat App</title>
+    <title>Prepare</title>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
@@ -13,7 +13,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-
 
     <style>
       body {
@@ -30,9 +29,26 @@
   <body>
 
     <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
-      <div class="container">
-        <a class="navbar-brand" href="/">AI Interview</a>
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm py-3 mb-4">
+      <div class="container d-flex justify-content-between align-items-center">
+
+        <!-- Branding -->
+        <a class="navbar-brand d-flex align-items-center fw-bold fs-4" href="/">
+          <i class="bi bi-book-fill text-primary me-2"></i>
+          Prepare
+        </a>
+
+        <!-- Right Side Actions -->
+        <div class="d-flex align-items-center gap-2">
+          <% if user_signed_in? %>
+            <%= link_to "Logout",
+                destroy_user_session_path,
+                method: :delete,
+                data: { turbo_method: :delete },
+                class: "btn btn-outline-danger px-4 py-2" %>
+          <% end %>
+        </div>
+
       </div>
     </nav>
 
