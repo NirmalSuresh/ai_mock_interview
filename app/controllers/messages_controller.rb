@@ -3,7 +3,9 @@ class MessagesController < ApplicationController
   before_action :set_session
 
   def create
+    # -------------------------------
     # 1. END IF SESSION EXPIRED
+    # -------------------------------
     if @session.expired?
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
@@ -12,7 +14,9 @@ class MessagesController < ApplicationController
     raw_input = params.dig(:message, :content).to_s
     user_input = raw_input.strip.downcase
 
+    # -------------------------------
     # 2. MANUAL "end"
+    # -------------------------------
     if user_input == "end" || user_input.start_with?("end ")
       @session.update!(status: "completed")
 
@@ -30,14 +34,18 @@ class MessagesController < ApplicationController
       return
     end
 
+    # -------------------------------
     # 3. SAVE USER MESSAGE
+    # -------------------------------
     @message = @session.messages.create!(
       role: "user",
       content: raw_input.presence,
       attachment: message_params[:attachment]
     )
 
+    # -------------------------------
     # 4. FILE UPLOADED → GROQ ANALYZER
+    # -------------------------------
     if @message.attachment.attached?
       ai_text = FileAnalyzer.call(@message)
 
@@ -50,7 +58,9 @@ class MessagesController < ApplicationController
       return respond_ok
     end
 
-    # 5. NORMAL TEXT MESSAGE → NEXT QUESTION
+    # -------------------------------
+    # 5. NORMAL TEXT → NEXT QUESTION
+    # -------------------------------
     generate_next_question!
     respond_ok
   end
@@ -58,10 +68,10 @@ class MessagesController < ApplicationController
   private
 
   # -------------------------------------------------------
-  # AUTO-GENERATE NEXT QUESTION (FIXED VERSION — NO RETURN)
+  # AUTO-GENERATE NEXT QUESTION
   # -------------------------------------------------------
   def generate_next_question!
-    finish_session_if_done  # DO NOT return here
+    return if finish_session_if_done  # IMPORTANT FIX
 
     next_q = @session.current_question_number + 1
 
@@ -76,7 +86,7 @@ class MessagesController < ApplicationController
       model: "llama-3.1-70b-versatile",
       messages: [
         { role: "system", content: SystemPrompt.text },
-        { role: "user", content: "Role: #{@session.role}\n\nRecent Conversation:\n#{history}" },
+        { role: "user", content: "Role: #{@session.role}\n\nConversation:\n#{history}" },
         { role: "user", content: "Ask interview question number #{next_q}." }
       ]
     )
@@ -90,13 +100,16 @@ class MessagesController < ApplicationController
   end
 
   # -------------------------------------------------------
-  # END SESSION AT 25 QUESTIONS
+  # STOP SESSION AT QUESTION 25
   # -------------------------------------------------------
   def finish_session_if_done
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       redirect_to final_report_assistant_session_path(@session)
+      return true   # CRITICAL FOR FIX
     end
+
+    false
   end
 
   # -------------------------------------------------------
