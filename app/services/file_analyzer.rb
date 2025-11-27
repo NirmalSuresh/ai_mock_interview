@@ -1,24 +1,30 @@
 class FileAnalyzer
   def self.call(blob)
-    path = download_to_tmp(blob)
+    tmp_path = download_to_tmp(blob)
 
-    case blob.content_type
+    base64_data = Base64.strict_encode64(File.read(tmp_path))
+    mime = blob.content_type
+
+    data_url = "data:#{mime};base64,#{base64_data}"
+
+    case mime
     when "application/pdf"
-      { pdf: path }
+      { pdf: data_url }
     when /^image\//
-      { image: path }
+      { image: data_url }
     when /^audio\//
-      { audio: path }
+      { audio: data_url }
     else
-      { file: path }
+      { file: data_url }
     end
   end
 
   def self.download_to_tmp(blob)
-    tmp = Tempfile.new(["upload", File.extname(blob.filename.to_s)])
-    tmp.binmode
-    tmp.write(blob.download)
-    tmp.rewind
-    tmp.path
+    ext = File.extname(blob.filename.to_s)
+    file = Tempfile.new(["upload", ext])
+    file.binmode
+    file.write(blob.download)
+    file.rewind
+    file.path
   end
 end
