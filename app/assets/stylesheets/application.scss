@@ -26,11 +26,26 @@
 }
 
 .messenger-box {
-  max-width: 650px;
-  height: 80vh;
+  max-width: 900px;             /* wider screen */
+  width: 100%;                  /* take full width */
+  height: 85vh;
   display: flex;
   flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: auto;                 /* center horizontally */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
+
+@media (max-width: 768px) {
+  .messenger-box {
+    max-width: 100%;
+    height: 92vh;
+    border-radius: 0;
+  }
+}
+
 
 .messenger-chat {
   flex: 1;             /* Expand to fill available space */
@@ -103,4 +118,13 @@ body {
 
 body {
   background: #f7f9fc;
+}
+
+.messenger-chat {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+
+body {
+  background: #eef0f3;
 }
