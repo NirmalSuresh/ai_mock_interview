@@ -13,6 +13,8 @@ gem "pg", "~> 1.1"
 
 gem "groq"
 
+gem "down"
+
 gem "devise"
 
 gem "ruby_llm", "~> 1.7"

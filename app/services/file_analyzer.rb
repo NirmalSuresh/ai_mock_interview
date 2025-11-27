@@ -1,117 +1,58 @@
-require "base64"
 require "groq"
+require "down"
+require "base64"
 
 class FileAnalyzer
   def self.call(message)
-    blob = message.attachment.blob
-    file_bytes = blob.download
-    content_type = blob.content_type
+    file = message.attachment
+
+    # 1) Download file from Cloudinary URL
+    temp_file = Down.download(file.url)
+
+    # 2) Read & Base64 encode
+    base64_data = Base64.strict_encode64(temp_file.read)
+
+    # 3) Build data URI based on file MIME type
+    data_uri = "data:#{file.content_type};base64,#{base64_data}"
 
     client = Groq::Client.new(api_key: ENV["GROQ_API_KEY"])
 
-    # ---------------------------------------------------
-    # 1. Detect file type and choose correct model
-    # ---------------------------------------------------
-    if content_type.start_with?("image/")
-      return analyze_image(client, file_bytes)
-    elsif content_type.start_with?("audio/")
-      return analyze_audio(client, file_bytes)
-    elsif content_type.in?(["application/pdf",
-                             "text/plain",
-                             "application/msword",
-                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"])
-      return analyze_document(client, file_bytes)
+    model = if file.image?
+      "llama-3.2-11b-vision-preview"
     else
-      return "Unsupported file type: #{content_type}"
+      "llama-3.1-70b-versatile"
     end
-  end
 
-  # ---------------------------------------------------
-  # IMAGE ANALYSIS (OCR + Summary + Interview Insight)
-  # ---------------------------------------------------
-  def self.analyze_image(client, bytes)
-    base64_img = Base64.strict_encode64(bytes)
-
+    # 4) Send file to Groq
     response = client.chat.completions.create(
-      model: "llava-v1.6-34b",
+      model: model,
       messages: [
-        { role: "system", content: "You analyze images with OCR and give interview-related insights." },
         {
           role: "user",
           content: [
-            {
-              type: "input_image",
-              image_url: "data:image/jpeg;base64,#{base64_img}"
-            },
-            {
-              type: "text",
-              text: "Describe image + Extract text + Give interview insights."
-            }
-          ]
-        }
-      ]
-    )
-
-    response.choices[0].message.content
-  end
-
-  # ---------------------------------------------------
-  # AUDIO TRANSCRIPTION (Whisper)
-  # ---------------------------------------------------
-  def self.analyze_audio(client, bytes)
-    file = Tempfile.new(["audio", ".mp3"])
-    file.binmode
-    file.write(bytes)
-    file.rewind
-
-    transcript = client.audio.transcriptions.create(
-      model: "whisper-large-v3",
-      file: file
-    )
-
-    text = transcript.text
-
-    # Analyze the transcription with LLaMA model
-    response = client.chat.completions.create(
-      model: "llama-3.1-70b-versatile",
-      messages: [
-        { role: "system", content: "Summarize and give communication feedback." },
-        { role: "user", content: text }
-      ]
-    )
-
-    file.close
-    file.unlink
-
-    response.choices[0].message.content
-  end
-
-  # ---------------------------------------------------
-  # PDF / DOCUMENT ANALYSIS
-  # ---------------------------------------------------
-  def self.analyze_document(client, bytes)
-    base64_doc = Base64.strict_encode64(bytes)
-
-    response = client.chat.completions.create(
-      model: "llama-3.1-70b-versatile",
-      messages: [
-        { role: "system", content: "You read documents, extract text, summarize and give interview insights." },
-        {
-          role: "user",
-          content: [
+            { type: "input_text", text: prompt_for(file) },
             {
               type: "input_file",
-              file: "data:application/octet-stream;base64,#{base64_doc}"
-            },
-            {
-              type: "text",
-              text: "Extract full text + Summarize + Give interview-related insights."
+              file: {
+                file_data: data_uri
+              }
             }
           ]
         }
       ]
     )
 
-    response.choices[0].message.content
+    response.choices[0].message["content"]
+  rescue => e
+    "Error analyzing file: #{e.message}"
+  end
+
+  # Prompts depending on file type
+  def self.prompt_for(file)
+    if file.image?
+      "Analyze this IMAGE. Extract text, describe it, and give interview-related insights."
+    else
+      "Analyze this DOCUMENT/PDF. Extract content, summarize, and give interview-related insights."
+    end
   end
 end

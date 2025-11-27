@@ -137,6 +137,8 @@ GEM
     dotenv-rails (3.1.8)
       dotenv (= 3.1.8)
       railties (>= 6.1)
+    down (5.4.2)
+      addressable (~> 2.8)
     drb (2.2.3)
     erb (6.0.0)
     erubi (1.13.1)
@@ -398,6 +400,7 @@ DEPENDENCIES
   debug
   devise
   dotenv-rails
+  down
   font-awesome-sass (~> 6.1)
   groq
   importmap-rails
