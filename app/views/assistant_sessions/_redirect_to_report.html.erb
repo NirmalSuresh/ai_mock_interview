@@ -1,8 +1,24 @@
-<turbo-stream action="redirect" url="<%= final_report_assistant_session_path(session) %>"></turbo-stream>
+<%# app/views/assistant_sessions/_redirect_to_report.html.erb %>
 
-<div class="p-4 text-center text-lg font-semibold">
-  Ending interview...
-  <div class="spinner-border text-primary mt-2" role="status">
-    <span class="visually-hidden">Loading...</span>
+<%= turbo_stream.append "messages" do %>
+  <div class="p-4 text-center text-lg font-semibold">
+    Ending interview...
+    <div class="spinner-border text-primary mt-2" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <script>
+      (function() {
+        var url = "<%= final_report_assistant_session_path(session) %>";
+        // Use Turbo.visit if available, otherwise fallback to full navigation
+        if (window.Turbo && typeof Turbo.visit === "function") {
+          Turbo.visit(url);
+        } else if (window.turbo && typeof window.turbo.visit === "function") {
+          // older builds sometimes expose turbo on window.turbo
+          window.turbo.visit(url);
+        } else {
+          window.location.href = url;
+        }
+      })();
+    </script>
   </div>
-</div>
+<% end %>
