@@ -40,11 +40,15 @@ class Message < ApplicationRecord
   def attachment_url
   return unless attachment.attached?
 
+  host = ENV.fetch("HOST_URL", "ai-mock-interview-njap.onrender.com").strip
+
   Rails.application.routes.url_helpers.rails_blob_url(
     attachment,
-    host: ENV.fetch("HOST_URL", "https://ai-mock-interview-njap.onrender.com")
+    host: host,
+    protocol: "https"
   )
 end
+
 
 
   def attachment_content_type
