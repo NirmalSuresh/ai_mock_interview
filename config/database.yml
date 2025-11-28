@@ -79,6 +79,6 @@ test:
 #
 production:
   <<: *default
-  database: ai_mock_interview_production
-  username: ai_mock_interview
+  database: ai-mockinterview-db
+  username: ai_mockinterview_db_user
   password: <%= ENV["AI_MOCK_INTERVIEW_DATABASE_PASSWORD"] %>

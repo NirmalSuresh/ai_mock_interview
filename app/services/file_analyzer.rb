@@ -1,7 +1,10 @@
 class FileAnalyzer
   def self.call(message)
     file = message.attachment
+
+    # IMPORTANT: Use ActiveStorage signed URL
     file_url = message.attachment_url
+
     content_type = message.attachment_content_type
 
     chat = RubyLLM.chat(model: "gpt-4o-mini")
@@ -47,7 +50,7 @@ class FileAnalyzer
       PROMPT
     end
 
-    result = chat.ask(prompt)
+    result = chat.ask(prompt, with: { pdf: file_url })
     result&.content || "I couldn't analyze that file."
   end
 end
