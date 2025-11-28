@@ -2,8 +2,12 @@ class FileAnalyzer
   def self.call(message)
     file = message.attachment
 
-    # IMPORTANT: Use ActiveStorage signed URL
-    file_url = message.attachment_url
+    # --- Download actual file bytes ---
+    raw_data = file.download
+
+    # --- Convert to Base64 for RubyLLM ---
+    base64 = Base64.strict_encode64(raw_data)
+    data_url = "data:#{message.attachment_content_type};base64,#{base64}"
 
     content_type = message.attachment_content_type
 
@@ -12,22 +16,18 @@ class FileAnalyzer
     prompt = case content_type
     when /\Aimage\//
       <<~PROMPT
-        Analyze this IMAGE from the user:
-        URL: #{file_url}
-
-        1. Describe what's in the image.
-        2. Extract any text (OCR).
-        3. Give brief interview-related feedback.
+        Analyze this IMAGE:
+        1. Describe what’s in the image.
+        2. Extract text.
+        3. Give brief interview feedback.
       PROMPT
 
     when /\Aaudio\//
       <<~PROMPT
-        Analyze this AUDIO from the user:
-        URL: #{file_url}
-
-        1. Transcribe the audio.
-        2. Summarize it (1–2 sentences).
-        3. Give feedback related to interview communication.
+        Analyze this AUDIO:
+        1. Transcribe.
+        2. Summarize.
+        3. Give communication feedback.
       PROMPT
 
     when "application/pdf",
@@ -35,22 +35,17 @@ class FileAnalyzer
          "application/msword",
          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       <<~PROMPT
-        Analyze this DOCUMENT from the user:
-        URL: #{file_url}
-
+        Analyze this DOCUMENT:
         1. Extract main text.
-        2. Summarize it.
-        3. Give short interview-relevant insights.
+        2. Summarize.
+        3. Give interview insights.
       PROMPT
 
     else
-      <<~PROMPT
-        This file type is #{content_type}.
-        Try to describe it if possible.
-      PROMPT
+      "This file type is #{content_type}. Try to analyze it."
     end
 
-    result = chat.ask(prompt, with: { pdf: file_url })
+    result = chat.ask(prompt, with: { file: data_url })
     result&.content || "I couldn't analyze that file."
   end
 end
