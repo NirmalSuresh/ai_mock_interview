@@ -12,5 +12,5 @@ cloudinary:
   api_key: <%= ENV["CLOUDINARY_API_KEY"] %>
   api_secret: <%= ENV["CLOUDINARY_API_SECRET"] %>
   upload:
-    resource_type: raw
+    resource_type: auto
     type: private
