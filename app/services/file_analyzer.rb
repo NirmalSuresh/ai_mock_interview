@@ -2,22 +2,23 @@ class FileAnalyzer
   def self.call(message)
     file = message.attachment
 
-    # -- 1. Download actual file bytes from Cloudinary (ActiveStorage handles it)
+    # --- 1. SAFEST way to download file from Cloudinary via ActiveStorage ---
     begin
-      raw_data = file.download
+      raw_data = file.blob.download # << use blob.download (never file.download)
     rescue => e
       return "I couldn't download your file: #{e.message}"
     end
 
-    return "File is empty or unreadable." if raw_data.nil? || raw_data.empty?
+    # --- 2. Validate data ---
+    if raw_data.blank?
+      return "The uploaded file was empty. Please upload the file again."
+    end
 
-    # -- 2. Base64 encode the file
+    # --- 3. Convert to Base64 data URL ---
     base64 = Base64.strict_encode64(raw_data)
-
-    # -- 3. Build proper Base64 data URL
     data_url = "data:#{message.attachment_content_type};base64,#{base64}"
 
-    # -- 4. Build prompt
+    # --- 4. Detect file type ---
     content_type = message.attachment_content_type
 
     prompt = case content_type
@@ -25,16 +26,16 @@ class FileAnalyzer
       <<~PROMPT
         Analyze this IMAGE:
         1. Describe the image.
-        2. Extract any text (OCR).
-        3. Give interview feedback.
+        2. Extract any visible text (OCR).
+        3. Give job interview-related insights.
       PROMPT
 
     when /\Aaudio\//
       <<~PROMPT
         Analyze this AUDIO:
-        1. Transcribe it.
+        1. Transcribe all speech.
         2. Summarize it.
-        3. Provide communication feedback.
+        3. Give communication feedback for interviews.
       PROMPT
 
     when "application/pdf",
@@ -44,17 +45,22 @@ class FileAnalyzer
       <<~PROMPT
         Analyze this DOCUMENT:
         1. Extract key text.
-        2. Summarize it.
-        3. Give interview insights.
+        2. Summarize it briefly.
+        3. Give interview-related insights.
       PROMPT
 
     else
-      "This file type is #{content_type}. Analyze if possible."
+      "This file type (#{content_type}) may not be fully supported. Describe whatever you can."
     end
 
-    # -- 5. Send to RubyLLM (IMPORTANT: Use `file:` key)
+    # --- 5. Send to RubyLLM ---
     chat = RubyLLM.chat(model: "gpt-4o-mini")
-    result = chat.ask(prompt, with: { file: data_url })
+
+    begin
+      result = chat.ask(prompt, with: { file: data_url })
+    rescue => e
+      return "AI analysis failed: #{e.message}"
+    end
 
     result&.content || "I couldn't analyze that file."
   end
