@@ -12,26 +12,13 @@ class MessagesController < ApplicationController
     raw_input = params.dig(:message, :content).to_s
     user_input = raw_input.strip
 
-    # --- DETECT “end” COMMAND ---
+    # --- DETECT "end" COMMAND ---
     if user_input.downcase.start_with?("end")
       @session.update!(status: "completed")
-
-      respond_to do |format|
-        format.html { redirect_to final_report_assistant_session_path(@session) }
-
-        format.turbo_stream do
-          render turbo_stream: turbo_stream.replace(
-            "messages",
-            partial: "assistant_sessions/redirect_to_report",
-            locals: { session: @session }
-          )
-        end
-      end
-
-      return
+      return redirect_to final_report_assistant_session_path(@session)
     end
 
-    # --- SAVE MESSAGE (text + optional file) ---
+    # --- SAVE USER MESSAGE (text + optional file) ---
     @message = @session.messages.create!(
       role: "user",
       content: raw_input.presence,
@@ -50,21 +37,27 @@ class MessagesController < ApplicationController
       return respond_ok
     end
 
-    # --- NORMAL INTERVIEW QUESTION FLOW ---
+    # --- END OF INTERVIEW ---
     if @session.current_question_number >= 25
       @session.update!(status: "completed")
       return redirect_to final_report_assistant_session_path(@session)
     end
 
-    next_q = @session.current_question_number + 1
+    # --- PREVENT REPEATED QUESTIONS ---
+    next_q = (@session.current_question_number || 0) + 1
 
-    history = @session.messages.order(:created_at).last(10).map { |m|
-      "#{m.role.capitalize}: #{m.content}"
-    }.join("\n")
+    # Build SAFE history
+    history = @session.messages.order(:created_at).last(10).map do |m|
+      if m.attachment.present?
+        "#{m.role.capitalize}: #{m.content.presence || '[User uploaded a file]'}"
+      else
+        "#{m.role.capitalize}: #{m.content}"
+      end
+    end.join("\n")
 
     chat = RubyLLM.chat(model: "gpt-4o-mini")
 
-    ai_response = chat.ask(<<~PROMPT)
+    prompt = <<~PROMPT
       #{SystemPrompt.text}
 
       Role: #{@session.role}
@@ -72,14 +65,17 @@ class MessagesController < ApplicationController
       Recent conversation:
       #{history}
 
-      Ask interview question number #{next_q}.
+      Now ask interview question number #{next_q}.
     PROMPT
+
+    ai_response = chat.ask(prompt)
 
     @assistant_msg = @session.messages.create!(
       role: "assistant",
       content: ai_response.content.presence || "Please repeat your answer."
     )
 
+    # UPDATE THE QUESTION NUMBER LAST (guarantees no duplication)
     @session.update!(current_question_number: next_q)
 
     respond_ok
