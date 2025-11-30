@@ -19,8 +19,6 @@ gem "devise"
 
 gem "ruby_llm", "~> 1.7"
 
-gem "pdf-reader"
-
 gem "cloudinary"
 
 gem "activestorage-cloudinary-service"

@@ -9,7 +9,6 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
-    Ascii85 (2.0.1)
     actioncable (7.1.6)
       actionpack (= 7.1.6)
       activesupport (= 7.1.6)
@@ -92,7 +91,6 @@ GEM
       tzinfo (~> 2.0)
     addressable (2.8.8)
       public_suffix (>= 2.0.2, < 8.0)
-    afm (1.0.0)
     autoprefixer-rails (10.4.21.0)
       execjs (~> 2)
     base64 (0.3.0)
@@ -173,7 +171,6 @@ GEM
       event_stream_parser (~> 1.0)
       faraday (>= 1.10.0)
       json
-    hashery (2.1.2)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     importmap-rails (2.2.2)
@@ -236,12 +233,6 @@ GEM
       racc (~> 1.4)
     orm_adapter (0.5.0)
     ostruct (0.6.3)
-    pdf-reader (2.15.0)
-      Ascii85 (>= 1.0, < 3.0, != 2.0.0)
-      afm (>= 0.2.1, < 2)
-      hashery (~> 2.0)
-      ruby-rc4
-      ttfunk
     pg (1.6.2)
     pg (1.6.2-aarch64-linux)
     pg (1.6.2-aarch64-linux-musl)
@@ -311,7 +302,6 @@ GEM
       actionpack (>= 7.0)
       railties (>= 7.0)
     rexml (3.4.4)
-    ruby-rc4 (0.1.5)
     ruby_llm (1.9.1)
       base64
       event_stream_parser (~> 1)
@@ -354,8 +344,6 @@ GEM
     tilt (2.6.1)
     timeout (0.4.4)
     tsort (0.2.0)
-    ttfunk (1.8.0)
-      bigdecimal (~> 3.1)
     turbo-rails (2.0.20)
       actionpack (>= 7.1.0)
       railties (>= 7.1.0)
@@ -405,7 +393,6 @@ DEPENDENCIES
   groq
   importmap-rails
   jbuilder
-  pdf-reader
   pg (~> 1.1)
   puma (>= 5.0)
   rails (~> 7.1.6)
